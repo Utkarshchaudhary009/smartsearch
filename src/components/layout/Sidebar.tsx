@@ -46,7 +46,12 @@ export default function Sidebar({ userId }: SidebarProps) {
   }, [chatSlugs, isLoading]);
   
   const startNewChat = () => {
-    router.push("/");
+    // Force a new chat by explicitly setting chatSlug to default
+    router.push("/?chatSlug=default");
+    
+    // Clear any cached messages for this chat (run any necessary cleanup)
+    // This is important to ensure the chat UI fully resets
+    window.localStorage.setItem('newChatRequested', 'true');
   };
   
   return (

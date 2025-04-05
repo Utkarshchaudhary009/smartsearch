@@ -89,6 +89,18 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   }, [userId]);
 
+  // Reset chat when new chat is requested or chatSlug changes to default
+  useEffect(() => {
+    // Handle new chat request from sidebar
+    const newChatRequested = window.localStorage.getItem('newChatRequested');
+    if (newChatRequested === 'true' || (chatSlug === 'default' && messages.length > 0)) {
+      console.log("Debug - New chat requested, resetting messages");
+      setMessages([]);
+      setIsFirstQuery(true);
+      window.localStorage.removeItem('newChatRequested');
+    }
+  }, [chatSlug, messages.length]);
+
   // Load chat history from the server when component mounts or chatSlug changes
   useEffect(() => {
     if (chatHistoryData && !isLoadingHistory && userId) {
@@ -102,6 +114,15 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       }
     }
   }, [chatHistoryData, isLoadingHistory, userId, chatSlug]);
+
+  // Update isFirstQuery when chatSlug changes
+  useEffect(() => {
+    if (chatSlug === "default") {
+      setIsFirstQuery(true);
+    } else {
+      setIsFirstQuery(false);
+    }
+  }, [chatSlug]);
 
   // Helper to create a chat slug from a query
   const createSlugFromQuery = (query: string): string => {
@@ -126,7 +147,11 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       "Debug - handleSendMessage start, userId:",
       userId,
       "guestMessageCount:",
-      guestMessageCount
+      guestMessageCount,
+      "isFirstQuery:",
+      isFirstQuery,
+      "chatSlug:",
+      chatSlug
     );
 
     // Generate a new slug for the first query at default route
@@ -134,7 +159,9 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     if (isFirstQuery && chatSlug === "default") {
       currentChatSlug = createSlugFromQuery(content);
       console.log("Debug - created new slug:", currentChatSlug);
-      router.push(`/?chatSlug=${currentChatSlug}`, { scroll: false });
+      
+      // Use replace instead of push to avoid back button returning to default chat
+      router.replace(`/?chatSlug=${currentChatSlug}`, { scroll: false });
       setIsFirstQuery(false);
     }
 
