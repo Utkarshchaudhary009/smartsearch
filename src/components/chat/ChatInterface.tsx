@@ -92,12 +92,15 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   // Reset chat when new chat is requested or chatSlug changes to default
   useEffect(() => {
     // Handle new chat request from sidebar
-    const newChatRequested = window.localStorage.getItem('newChatRequested');
-    if (newChatRequested === 'true' || (chatSlug === 'default' && messages.length > 0)) {
+    const newChatRequested = window.localStorage.getItem("newChatRequested");
+    if (
+      newChatRequested === "true" ||
+      (chatSlug === "default" && messages.length > 0)
+    ) {
       console.log("Debug - New chat requested, resetting messages");
       setMessages([]);
       setIsFirstQuery(true);
-      window.localStorage.removeItem('newChatRequested');
+      window.localStorage.removeItem("newChatRequested");
     }
   }, [chatSlug, messages.length]);
 
@@ -159,7 +162,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     if (isFirstQuery && chatSlug === "default") {
       currentChatSlug = createSlugFromQuery(content);
       console.log("Debug - created new slug:", currentChatSlug);
-      
+
       // Use replace instead of push to avoid back button returning to default chat
       router.replace(`/?chatSlug=${currentChatSlug}`, { scroll: false });
       setIsFirstQuery(false);
@@ -354,9 +357,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
       <div className='px-4 pb-1'>
         <p className='text-xs text-muted-foreground text-center'>
-          This AI assistant provides information based on its training data and
-          may occasionally produce inaccurate or incomplete responses. Please
-          verify important information from reliable sources.
+          This AI assistant may provide inaccurate information.
         </p>
       </div>
 
