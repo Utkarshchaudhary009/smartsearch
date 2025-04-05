@@ -20,7 +20,7 @@ export type Database = {
           phone_verified_at: string | null;
           last_login_at: string | null;
           is_active: boolean;
-          metadata: Record<string, any>;
+          metadata: Record<string, {role:string}>;
           marketing_consent: boolean;
         };
         Insert: {
@@ -41,7 +41,7 @@ export type Database = {
           phone_verified_at?: string | null;
           last_login_at?: string | null;
           is_active?: boolean;
-          metadata?: Record<string, any>;
+          metadata?: Record<string, {role:string}>;
           marketing_consent?: boolean;
         };
         Update: {
@@ -62,7 +62,7 @@ export type Database = {
           phone_verified_at?: string | null;
           last_login_at?: string | null;
           is_active?: boolean;
-          metadata?: Record<string, any>;
+          metadata?: Record<string, {role:string}>;
           marketing_consent?: boolean;
         };
       };

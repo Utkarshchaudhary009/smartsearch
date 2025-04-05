@@ -166,7 +166,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
             <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div className="space-y-2">
               <h3 className="font-medium text-amber-900 dark:text-amber-400">
-                You've reached the guest message limit
+                You&apos;ve reached the guest message limit
               </h3>
               <p className="text-sm text-amber-800 dark:text-amber-500">
                 Sign in to continue chatting with unlimited messages and save your chat history.
