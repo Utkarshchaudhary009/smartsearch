@@ -1,6 +1,6 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/tanstack/supabase";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     // Check if the authenticated user is an admin by querying Supabase
     const { data: adminCheck, error: adminCheckError } = await supabase
-      .from("users")
+      .from("smartusers")
       .select("role")
       .eq("clerk_id", userId)
       .single();
@@ -50,13 +50,13 @@ export async function POST(request: Request) {
     // 1. Update the user's role in Clerk (for initial login)
     await (
       await clerkClient()
-    ).users.updateUser(targetUserId, {
+    ).smartusers.updateUser(targetUserId, {
       publicMetadata: { role },
     });
 
     // 2. Update the user's role in Supabase database
     const { error: updateError } = await supabase
-      .from("users")
+      .from("smartusers")
       .update({ role })
       .eq("clerk_id", targetUserId);
 

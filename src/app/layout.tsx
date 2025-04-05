@@ -8,40 +8,12 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import Footer from "@/components/layout/Footer";
-import dynamic from "next/dynamic";
-import { generateWebsiteStructuredData } from "@/lib/structured-data";
-import StructuredData from "@/components/structured-data";
-
-const PWAInstallPrompt = dynamic(
-  () => import("@/components/ui/pwa-install-prompt"),
-  { ssr: false }
-);
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Smart Search Chat",
   description: "AI-powered chat interface with smart search capabilities",
-  manifest: "/manifest.json",
-  themeColor: "#ffffff",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "SmartSearch",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  icons: {
-    icon: ["/favicon.ico"],
-    apple: ["/apple-icon.png"],
-  },
 };
 
 export default async function RootLayout({
@@ -50,16 +22,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const { userId } = await auth();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://smartsearch.utkarshchaudhary.space";
-
-  const websiteStructuredData = generateWebsiteStructuredData({
-    url: baseUrl,
-    name: "SmartSearch",
-    description: "AI-powered chat interface with smart search capabilities",
-    logoUrl: `${baseUrl}/web-app-manifest-512x512.png`,
-  });
 
   return (
     <ClerkProvider>
@@ -67,9 +29,6 @@ export default async function RootLayout({
         lang='en'
         suppressHydrationWarning
       >
-        <head>
-          <StructuredData data={websiteStructuredData} />
-        </head>
         <body className={inter.className}>
           <ThemeProvider
             attribute='class'
@@ -93,7 +52,6 @@ export default async function RootLayout({
                 </div>
                 <Footer />
               </div>
-              <PWAInstallPrompt />
             </TanstackProvider>
           </ThemeProvider>
         </body>
