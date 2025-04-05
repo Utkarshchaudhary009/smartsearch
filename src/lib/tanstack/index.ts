@@ -3,7 +3,6 @@ export { TanstackProvider } from './provider';
 
 // User hooks
 export {
-  useSyncUser,
   useUserById,
   useUsersByMarketingConsent,
   useChangeMarketingConsent
