@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  syncUserWithSupabase,
   getUserById,
   getUserByMarketingConsent,
   changeMarketingConsent,
@@ -16,22 +15,7 @@ const userKeys = {
     [...userKeys.all, "marketing", consent] as const,
 };
 
-// Hook to sync user with Supabase
-export function useSyncUser() {
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: syncUserWithSupabase,
-    onSuccess: (data) => {
-      if (data?.clerk_id) {
-        queryClient.invalidateQueries({
-          queryKey: userKeys.details(data.clerk_id),
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: userKeys.all });
-    },
-  });
-}
 
 // Hook to get user by Clerk ID
 export function useUserById(clerkId: string) {
