@@ -7,7 +7,6 @@ import { TanstackProvider } from "@/lib/tanstack";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
-import Footer from "@/components/layout/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,7 +31,7 @@ export default async function RootLayout({
         <body className={inter.className}>
           <ThemeProvider
             attribute='class'
-            defaultTheme='light'
+            defaultTheme='system'
             enableSystem
             disableTransitionOnChange
           >
@@ -50,7 +49,6 @@ export default async function RootLayout({
                     {children}
                   </main>
                 </div>
-                <Footer />
               </div>
             </TanstackProvider>
           </ThemeProvider>

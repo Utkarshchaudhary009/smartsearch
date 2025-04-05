@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { useChatHistory, useSaveChatHistory } from "@/lib/tanstack";
 import { Message } from "./types";
@@ -19,21 +19,24 @@ interface ChatInterfaceProps {
 const MAX_FREE_MESSAGES = 5;
 
 export default function ChatInterface({ userId }: ChatInterfaceProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const chatSlug = searchParams.get("chatSlug") || "default";
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "agent",
       content:
         "Hello, I am a generative AI assistant. How may I assist you today?",
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: "",
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [guestMessageCount, setGuestMessageCount] = useState(0);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isFirstQuery, setIsFirstQuery] = useState(chatSlug === "default");
 
   // Use TanStack hooks
   const { data: chatHistoryData, isLoading: isLoadingHistory } = useChatHistory(
@@ -41,6 +44,13 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     chatSlug
   );
   const { mutate: saveChatHistory } = useSaveChatHistory();
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   // Load guest message count from localStorage on component mount
   useEffect(() => {
@@ -64,13 +74,37 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       // Reset default message if we have history
       if (formattedMessages.length > 0) {
         setMessages(formattedMessages);
+        setIsFirstQuery(false);
       }
     }
   }, [chatHistoryData, isLoadingHistory, userId, chatSlug]);
 
+  // Helper to create a chat slug from a query
+  const createSlugFromQuery = (query: string): string => {
+    // Create a slug from the first 5 words (or fewer if there are less than 5)
+    const words = query.trim().split(/\s+/).slice(0, 5).join("-");
+    const baseSlug = words
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "") // Remove special characters
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .slice(0, 50); // Limit length
+
+    // Add timestamp to ensure uniqueness
+    const timestamp = new Date().getTime().toString().slice(-6);
+    return `${baseSlug}-${timestamp}`;
+  };
+
   const handleSendMessage = async (content: string) => {
     // Clear any previous API errors
     setApiError(null);
+
+    // Generate a new slug for the first query at default route
+    let currentChatSlug = chatSlug;
+    if (isFirstQuery && chatSlug === "default") {
+      currentChatSlug = createSlugFromQuery(content);
+      router.push(`/?chatSlug=${currentChatSlug}`, { scroll: false });
+      setIsFirstQuery(false);
+    }
 
     // Check if non-logged user has reached message limit
     if (!userId) {
@@ -94,20 +128,35 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     const userMessage: Message = {
       role: "user",
       content,
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: "",
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
+    // Add skeleton message temporarily while loading
+    const tempId = uuidv4();
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "agent",
+        content: "",
+        timestamp: "",
+        id: tempId,
+        isLoading: true,
+      },
+    ]);
+
     try {
       // Create a chat history array for the API
-      const chatHistory = messages.map((msg) => ({
-        id: uuidv4(),
-        role: msg.role === "agent" ? "assistant" : "user",
-        content: msg.content,
-        timestamp: Date.now(),
-      }));
+      const chatHistory = messages
+        .filter((msg) => !msg.isLoading) // Filter out any skeleton messages
+        .map((msg) => ({
+          id: uuidv4(),
+          role: msg.role === "agent" ? "assistant" : "user",
+          content: msg.content,
+          timestamp: Date.now(),
+        }));
 
       // Call the smartai API with timeout
       const controller = new AbortController();
@@ -135,10 +184,13 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
       const data = await response.json();
 
+      // Remove the skeleton message
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+
       const agentResponse: Message = {
         role: "agent",
         content: data.message || "Sorry, I couldn't generate a response.",
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: "",
       };
 
       setMessages((prev) => [...prev, agentResponse]);
@@ -149,11 +201,14 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           clerkId: userId,
           query: content,
           response: agentResponse.content,
-          chatSlug,
+          chatSlug: currentChatSlug,
         });
       }
     } catch (error) {
       console.error("Error sending message:", error);
+
+      // Remove the skeleton message
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
 
       // Set API error state
       if (error instanceof DOMException && error.name === "AbortError") {
@@ -169,7 +224,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         role: "agent",
         content:
           "Sorry, there was an error processing your request. Our team has been notified of the issue. Please try again later.",
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: "",
       };
 
       setMessages((prev) => [...prev, errorMessage]);
@@ -179,8 +234,11 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   };
 
   return (
-    <div className='flex-1 flex flex-col h-full'>
-      <MessageList messages={messages} />
+    <div className='flex flex-1 flex-col h-full'>
+      <div className='flex-1 overflow-y-auto'>
+        <MessageList messages={messages} />
+        <div ref={messagesEndRef} />
+      </div>
 
       {apiError && (
         <div className='p-4 mx-4 mb-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg'>
@@ -230,13 +288,15 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         </p>
       </div>
 
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-        disabled={
-          (!userId && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
-        }
-      />
+      <div className='sticky bottom-0 bg-background'>
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          disabled={
+            (!userId && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
+          }
+        />
+      </div>
     </div>
   );
 }

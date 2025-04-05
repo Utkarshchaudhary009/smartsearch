@@ -68,6 +68,24 @@ export default function Navbar({ userId }: NavbarProps) {
                   },
                 }}
               />
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='md:hidden'
+                  >
+                    <History className='h-5 w-5' />
+                    <span className='sr-only'>Chat History</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side='left'
+                  className='p-0'
+                >
+                  <Sidebar userId={userId} />
+                </SheetContent>
+              </Sheet>
             </SignedIn>
           </div>
         </div>

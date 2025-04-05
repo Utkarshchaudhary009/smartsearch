@@ -11,14 +11,14 @@ export function formatChatMessages(chatHistory: ChatMessage[]): Message[] {
     messages.push({
       role: "user",
       content: chat.query,
-      timestamp: new Date(chat.created_at).toLocaleTimeString(),
+      timestamp: "",
     });
 
     // Add agent response
     messages.push({
       role: "agent",
       content: chat.response,
-      timestamp: new Date(chat.created_at).toLocaleTimeString(),
+      timestamp: "",
     });
   }
 

@@ -111,17 +111,25 @@ async function conductResearch(topic: string) {
 
     const searchResults = await response.json();
 
-    // Add the answer
-    researchNotes.push(
-      `query: ${searchResults.query}\nanswer: ${searchResults.answer}`
-    );
+    // Add the answer if available
+    if (searchResults.query && searchResults.answer) {
+      researchNotes.push(
+        `query: ${searchResults.query}\nanswer: ${searchResults.answer}`
+      );
+    } else {
+      researchNotes.push(`query: ${topic}\nanswer: No specific answer found.`);
+    }
 
     // Add the research results
     if (searchResults.results && searchResults.results.length > 0) {
       const researchNote = searchResults.results
         .map(
           (result: Result) =>
-            `title: ${result.title}\nContent: ${result.content}\n Source: ${result.url} relevancy score: ${result.score}`
+            `title: ${result.title || "Untitled"}\nContent: ${
+              result.content || "No content available"
+            }\n Source: ${result.url || "#"} relevancy score: ${
+              result.score || 0
+            }`
         )
         .join("\n\n");
       researchNotes.push(researchNote);
@@ -132,13 +140,18 @@ async function conductResearch(topic: string) {
       const imageDetail = searchResults.images
         .map(
           (image: { url: string; description: string }) =>
-            `image url: ${image.url}\n\nimage description: ${image.description}`
+            `image url: ${image.url || "#"}\n\nimage description: ${
+              image.description || "No description available"
+            }`
         )
         .join("\n\n");
       researchNotes.push(imageDetail);
     }
 
-    return researchNotes;
+    // Return research notes or a fallback if empty
+    return researchNotes.length > 0
+      ? researchNotes
+      : ["No relevant information found for this query."];
   } catch (error) {
     console.error(`Error fetching research for: ${topic}`, error);
     return [
@@ -187,20 +200,19 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  // message from search prams
-  const searchParams = new URLSearchParams(window.location.search);
-  const message = searchParams.get("message");
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const message = url.searchParams.get("message");
+
+  if (!message) {
+    return NextResponse.json(
+      { message: "Chatbot API is working. Add ?message=your_query to test" },
+      { status: 200 }
+    );
+  }
 
   try {
-    const chatHistory = [];
-
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
-    }
+    const chatHistory: Message[] = [];
 
     const googleApiKey = process.env.GOOGLE_AI_KEY;
     if (!googleApiKey) {

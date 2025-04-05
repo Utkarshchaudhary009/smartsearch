@@ -2,6 +2,8 @@ export interface Message {
   role: "agent" | "user";
   content: string;
   timestamp: string;
+  id?: string;
+  isLoading?: boolean;
 }
 
 export interface ChatMessage {

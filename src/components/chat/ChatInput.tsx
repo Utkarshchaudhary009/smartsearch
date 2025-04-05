@@ -35,7 +35,7 @@ export default function ChatInput({
     <div className='p-4 border-t'>
       <div className='flex gap-2'>
         <Textarea
-          placeholder='Type a message as a customer'
+          placeholder='Message SmartSearch'
           value={input}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
             setInput(e.target.value)
