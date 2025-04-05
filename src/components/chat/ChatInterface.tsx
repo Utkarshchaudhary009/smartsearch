@@ -43,7 +43,18 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     userId || "",
     chatSlug
   );
-  const { mutate: saveChatHistory } = useSaveChatHistory();
+  const {
+    mutate: saveChatHistory,
+    isError: isSaveError,
+    error: saveError,
+  } = useSaveChatHistory();
+
+  // Debugging logs
+  useEffect(() => {
+    console.log("Debug - userId:", userId);
+    console.log("Debug - guestMessageCount:", guestMessageCount);
+    console.log("Debug - chatSlug:", chatSlug);
+  }, [userId, guestMessageCount, chatSlug]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -52,16 +63,35 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   }, [messages]);
 
+  // Reset guest message count when user logs in
+  useEffect(() => {
+    if (userId) {
+      setGuestMessageCount(0);
+      localStorage.removeItem("guestMessageCount");
+      setShowLoginPrompt(false);
+    }
+  }, [userId]);
+
   // Load guest message count from localStorage on component mount
   useEffect(() => {
     if (!userId) {
-      const storedCount = localStorage.getItem("guestMessageCount");
-      if (storedCount) {
-        const count = parseInt(storedCount, 10);
-        setGuestMessageCount(count);
-        if (count >= MAX_FREE_MESSAGES) {
-          setShowLoginPrompt(true);
+      try {
+        const storedCount = localStorage.getItem("guestMessageCount");
+        console.log("Debug - storedCount from localStorage:", storedCount);
+        if (storedCount) {
+          const count = parseInt(storedCount, 10);
+          setGuestMessageCount(count);
+          if (count >= MAX_FREE_MESSAGES) {
+            setShowLoginPrompt(true);
+          }
+        } else {
+          // Initialize with 0 if not set
+          localStorage.setItem("guestMessageCount", "0");
         }
+      } catch (error) {
+        console.error("Error accessing localStorage:", error);
+        // Default to allowing chats if localStorage fails
+        setGuestMessageCount(0);
       }
     }
   }, [userId]);
@@ -69,6 +99,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   // Load chat history from the server when component mounts or chatSlug changes
   useEffect(() => {
     if (chatHistoryData && !isLoadingHistory && userId) {
+      console.log("Debug - chatHistoryData:", chatHistoryData);
       const formattedMessages = formatChatMessages(chatHistoryData);
 
       // Reset default message if we have history
@@ -98,10 +129,18 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     // Clear any previous API errors
     setApiError(null);
 
+    console.log(
+      "Debug - handleSendMessage start, userId:",
+      userId,
+      "guestMessageCount:",
+      guestMessageCount
+    );
+
     // Generate a new slug for the first query at default route
     let currentChatSlug = chatSlug;
     if (isFirstQuery && chatSlug === "default") {
       currentChatSlug = createSlugFromQuery(content);
+      console.log("Debug - created new slug:", currentChatSlug);
       router.push(`/?chatSlug=${currentChatSlug}`, { scroll: false });
       setIsFirstQuery(false);
     }
@@ -109,18 +148,9 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     // Check if non-logged user has reached message limit
     if (!userId) {
       if (guestMessageCount >= MAX_FREE_MESSAGES) {
+        console.log("Debug - guest reached message limit");
         setShowLoginPrompt(true);
         return;
-      }
-
-      // Increment guest message count
-      const newCount = guestMessageCount + 1;
-      setGuestMessageCount(newCount);
-      localStorage.setItem("guestMessageCount", newCount.toString());
-
-      // Show login prompt when reaching the limit
-      if (newCount >= MAX_FREE_MESSAGES) {
-        setShowLoginPrompt(true);
       }
     }
 
@@ -158,6 +188,8 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           timestamp: Date.now(),
         }));
 
+      console.log("Debug - sending API request with chatHistory:", chatHistory);
+
       // Call the smartai API with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
@@ -183,6 +215,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       }
 
       const data = await response.json();
+      console.log("Debug - API response:", data);
 
       // Remove the skeleton message
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
@@ -197,12 +230,31 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
       // Save to database if user is logged in
       if (userId) {
+        console.log("Debug - saving to database, chatSlug:", currentChatSlug);
         saveChatHistory({
           clerkId: userId,
           query: content,
           response: agentResponse.content,
           chatSlug: currentChatSlug,
         });
+
+        if (isSaveError) {
+          console.error("Debug - Error saving chat:", saveError);
+        }
+      }
+
+      // Increment guest message count for non-logged users after successful response
+      if (!userId) {
+        // Increment guest message count
+        const newCount = guestMessageCount + 1;
+        console.log("Debug - incrementing guest count to:", newCount);
+        setGuestMessageCount(newCount);
+        localStorage.setItem("guestMessageCount", newCount.toString());
+
+        // Show login prompt when reaching the limit
+        if (newCount >= MAX_FREE_MESSAGES) {
+          setShowLoginPrompt(true);
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);

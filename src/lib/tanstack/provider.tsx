@@ -13,9 +13,15 @@ export function TanstackProvider({ children }: { children: ReactNode }) {
             // Industry-standard settings
             staleTime: 60 * 1000, // 1 minute
             gcTime: 5 * 60 * 1000, // 5 minutes
-            retry: 1,
+            retry: 3,
             refetchOnWindowFocus: false,
           },
+          mutations: {
+            retry: 2,
+            onError: (error) => {
+              console.error("Mutation error:", error);
+            }
+          }
         },
       })
   );

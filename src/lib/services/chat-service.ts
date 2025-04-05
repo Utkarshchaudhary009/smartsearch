@@ -6,6 +6,11 @@ export async function saveChatHistory(
   chatSlug: string
 ) {
   try {
+    console.log("clerkId:", clerkId);
+    console.log("query:", query);
+    console.log("response:", response);
+    console.log("chatSlug:", chatSlug);
+
     const { data, error } = await supabase
       .from("chat_history")
       .insert({
@@ -38,6 +43,7 @@ export async function getChatHistory(clerkId: string, chatSlug: string) {
       .eq("chat_slug", chatSlug)
       .order("created_at", { ascending: false });
 
+    console.log("chathistory:", data);
     if (error) {
       console.error("Error fetching chat history:", error);
       return [];
@@ -58,6 +64,7 @@ export async function getChatSlug(clerkId: string) {
       .eq("clerk_id", clerkId)
       .order("created_at", { ascending: false });
 
+    console.log("chatslug:", data);
     if (error) {
       console.error("Error fetching chat slug:", error);
       return null;

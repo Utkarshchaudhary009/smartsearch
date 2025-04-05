@@ -21,24 +21,6 @@ export default function Navbar({ userId }: NavbarProps) {
   return (
     <div className='border-b'>
       <div className='flex h-16 items-center px-4'>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='md:hidden'
-            >
-              <History className='h-5 w-5' />
-              <span className='sr-only'>Chat History</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side='left'
-            className='p-0'
-          >
-            <Sidebar userId={userId} />
-          </SheetContent>
-        </Sheet>
 
         <span className='font-bold sm:inline-block mr-6 flex items-center space-x-2'>
           SmartSearch

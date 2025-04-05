@@ -35,7 +35,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <TanstackProvider>
+    <TanstackProvider>
               <div className='flex h-screen flex-col'>
                 <Navbar userId={userId} />
                 <div className='flex flex-1 overflow-hidden'>
@@ -53,7 +53,7 @@ export default async function RootLayout({
             </TanstackProvider>
           </ThemeProvider>
         </body>
-      </html>
-    </ClerkProvider>
+        </html>
+      </ClerkProvider>
   );
 }
