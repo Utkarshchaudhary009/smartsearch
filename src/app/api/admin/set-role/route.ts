@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     // 1. Update the user's role in Clerk (for initial login)
     await (
       await clerkClient()
-    ).smartusers.updateUser(targetUserId, {
+    ).users.updateUserMetadata(targetUserId, {
       publicMetadata: { role },
     });
 
