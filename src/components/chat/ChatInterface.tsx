@@ -227,7 +227,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       });
 
       clearTimeout(timeoutId);
-
+      console.log("Debug - response:", response);
       if (!response.ok) {
         const errorData = await response.text();
         console.error("API error:", response.status, errorData);
