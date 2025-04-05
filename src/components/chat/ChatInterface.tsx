@@ -25,13 +25,15 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "agent",
-      content: "Hello, I am a generative AI assistant. How may I assist you today?",
+      content:
+        "Hello, I am a generative AI assistant. How may I assist you today?",
       timestamp: new Date().toLocaleTimeString(),
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [guestMessageCount, setGuestMessageCount] = useState(0);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Use TanStack hooks
   const { data: chatHistoryData, isLoading: isLoadingHistory } = useChatHistory(
@@ -43,7 +45,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   // Load guest message count from localStorage on component mount
   useEffect(() => {
     if (!userId) {
-      const storedCount = localStorage.getItem('guestMessageCount');
+      const storedCount = localStorage.getItem("guestMessageCount");
       if (storedCount) {
         const count = parseInt(storedCount, 10);
         setGuestMessageCount(count);
@@ -58,7 +60,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   useEffect(() => {
     if (chatHistoryData && !isLoadingHistory && userId) {
       const formattedMessages = formatChatMessages(chatHistoryData);
-      
+
       // Reset default message if we have history
       if (formattedMessages.length > 0) {
         setMessages(formattedMessages);
@@ -67,18 +69,21 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   }, [chatHistoryData, isLoadingHistory, userId, chatSlug]);
 
   const handleSendMessage = async (content: string) => {
+    // Clear any previous API errors
+    setApiError(null);
+
     // Check if non-logged user has reached message limit
     if (!userId) {
       if (guestMessageCount >= MAX_FREE_MESSAGES) {
         setShowLoginPrompt(true);
         return;
       }
-      
+
       // Increment guest message count
       const newCount = guestMessageCount + 1;
       setGuestMessageCount(newCount);
-      localStorage.setItem('guestMessageCount', newCount.toString());
-      
+      localStorage.setItem("guestMessageCount", newCount.toString());
+
       // Show login prompt when reaching the limit
       if (newCount >= MAX_FREE_MESSAGES) {
         setShowLoginPrompt(true);
@@ -91,20 +96,23 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       content,
       timestamp: new Date().toLocaleTimeString(),
     };
-    
-    setMessages(prev => [...prev, userMessage]);
+
+    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
       // Create a chat history array for the API
-      const chatHistory = messages.map(msg => ({
+      const chatHistory = messages.map((msg) => ({
         id: uuidv4(),
         role: msg.role === "agent" ? "assistant" : "user",
         content: msg.content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }));
 
-      // Call the smartai API
+      // Call the smartai API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch("/api/smartai", {
         method: "POST",
         headers: {
@@ -112,24 +120,29 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         },
         body: JSON.stringify({
           message: content,
-          chatHistory
+          chatHistory,
         }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error("Failed to get response");
+        const errorData = await response.text();
+        console.error("API error:", response.status, errorData);
+        throw new Error(`API error: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       const agentResponse: Message = {
         role: "agent",
-        content: data.message,
+        content: data.message || "Sorry, I couldn't generate a response.",
         timestamp: new Date().toLocaleTimeString(),
       };
-      
-      setMessages(prev => [...prev, agentResponse]);
-      
+
+      setMessages((prev) => [...prev, agentResponse]);
+
       // Save to database if user is logged in
       if (userId) {
         saveChatHistory({
@@ -139,41 +152,67 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           chatSlug,
         });
       }
-
     } catch (error) {
       console.error("Error sending message:", error);
-      
+
+      // Set API error state
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setApiError("Request timed out. Please try again.");
+      } else {
+        setApiError(
+          "There was a problem connecting to the AI service. Please try again later."
+        );
+      }
+
       // Add error message
       const errorMessage: Message = {
         role: "agent",
-        content: "Sorry, there was an error processing your request. Please try again.",
+        content:
+          "Sorry, there was an error processing your request. Our team has been notified of the issue. Please try again later.",
         timestamp: new Date().toLocaleTimeString(),
       };
-      
-      setMessages(prev => [...prev, errorMessage]);
+
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className='flex-1 flex flex-col h-full'>
       <MessageList messages={messages} />
-      
+
+      {apiError && (
+        <div className='p-4 mx-4 mb-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg'>
+          <div className='flex items-start gap-3'>
+            <AlertCircle className='h-5 w-5 text-red-500 mt-0.5 flex-shrink-0' />
+            <div>
+              <h3 className='font-medium text-red-900 dark:text-red-400'>
+                Connection Error
+              </h3>
+              <p className='text-sm text-red-800 dark:text-red-500'>
+                {apiError}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showLoginPrompt && !userId && (
-        <div className="p-4 mx-4 mb-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-            <div className="space-y-2">
-              <h3 className="font-medium text-amber-900 dark:text-amber-400">
+        <div className='p-4 mx-4 mb-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg'>
+          <div className='flex items-start gap-3'>
+            <AlertCircle className='h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0' />
+            <div className='space-y-2'>
+              <h3 className='font-medium text-amber-900 dark:text-amber-400'>
                 You&apos;ve reached the guest message limit
               </h3>
-              <p className="text-sm text-amber-800 dark:text-amber-500">
-                Sign in to continue chatting with unlimited messages and save your chat history.
+              <p className='text-sm text-amber-800 dark:text-amber-500'>
+                Sign in to continue chatting with unlimited messages and save
+                your chat history.
               </p>
-              <div className="pt-1">
-                <SignInButton mode="modal">
-                  <button className="px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <div className='pt-1'>
+                <SignInButton mode='modal'>
+                  <button className='px-4 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'>
                     Sign in
                   </button>
                 </SignInButton>
@@ -182,17 +221,21 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           </div>
         </div>
       )}
-      
-      <div className="px-4 pb-1">
-        <p className="text-xs text-muted-foreground text-center">
-          This AI assistant provides information based on its training data and may occasionally produce inaccurate or incomplete responses. Please verify important information from reliable sources.
+
+      <div className='px-4 pb-1'>
+        <p className='text-xs text-muted-foreground text-center'>
+          This AI assistant provides information based on its training data and
+          may occasionally produce inaccurate or incomplete responses. Please
+          verify important information from reliable sources.
         </p>
       </div>
-      
-      <ChatInput 
-        onSendMessage={handleSendMessage} 
-        isLoading={isLoading} 
-        disabled={!userId && guestMessageCount >= MAX_FREE_MESSAGES}
+
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        isLoading={isLoading}
+        disabled={
+          (!userId && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
+        }
       />
     </div>
   );

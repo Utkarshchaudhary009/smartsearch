@@ -40,7 +40,7 @@ export default function Navbar({ userId }: NavbarProps) {
           </SheetContent>
         </Sheet>
 
-        <span className='hidden font-bold sm:inline-block mr-6 flex items-center space-x-2'>
+        <span className='font-bold sm:inline-block mr-6 flex items-center space-x-2'>
           SmartSearch
         </span>
 
