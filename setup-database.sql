@@ -1,4 +1,3 @@
-
 -- Create Users Table
 CREATE TABLE smartusers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -33,20 +32,24 @@ on public.smartusers
 for select to anon
 using (true);
 
+create policy "users can update their own profile"
+on public.smartusers
+for update to anon
+using (true);
 
 -- write a schema to store chat history
 CREATE TABLE chat_history (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  clerk_id TEXT UNIQUE NOT NULL, -- Clerk User ID (Primary link to Clerk)
+  clerk_id TEXT NOT NULL, -- Clerk User ID (Primary link to Clerk)
   query TEXT NOT NULL,
   response TEXT NOT NULL,
-  chat_slug TEXT NOT NULL,
+  chat_slug TEXT NOT NULL
 );
 
 -- Add index for faster querying by clerk_id
-CREATE INDEX idx_chat_history_clerk_id ON chat_history (clerk_id);
+CREATE INDEX idx_chat_history_id ON chat_history (id);
 
 -- Enable Row Level Security on Tables
 ALTER TABLE chat_history ENABLE ROW LEVEL SECURITY;
@@ -54,4 +57,21 @@ ALTER TABLE chat_history ENABLE ROW LEVEL SECURITY;
 create policy "public can read chat history"
 on public.chat_history
 for select to anon
+using (true);
+
+-- Add policy to allow authenticated users to insert into chat_history
+create policy "authenticated users can insert chat history"
+on public.chat_history
+for insert to anon
+using (true);
+
+-- Add policy to allow users to update/delete their own chat history
+create policy "users can update their own chat history"
+on public.chat_history
+for update to anon
+using (true);
+
+create policy "users can delete their own chat history"
+on public.chat_history
+for delete to anon
 using (true);

@@ -41,7 +41,7 @@ export async function getChatHistory(clerkId: string, chatSlug: string) {
       .select("*")
       .eq("clerk_id", clerkId)
       .eq("chat_slug", chatSlug)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     console.log("chathistory:", data);
     if (error) {

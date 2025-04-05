@@ -24,14 +24,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const chatSlug = searchParams.get("chatSlug") || "default";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "agent",
-      content:
-        "Hello, I am a generative AI assistant. How may I assist you today?",
-      timestamp: "",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [guestMessageCount, setGuestMessageCount] = useState(0);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
