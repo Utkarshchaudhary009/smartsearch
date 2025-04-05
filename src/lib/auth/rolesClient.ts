@@ -1,30 +1,43 @@
+"use client";
 import { useAuth } from "@clerk/nextjs";
 
 import { UserRole } from "@/lib/types/role";
-import { supabase } from "@/lib/supabase/supabase";
-export async function getUserRole(): Promise<UserRole | null> {
-  try {
-    const user = await useAuth();
+import { supabase } from "../supabase";
 
-    if (!user) {
-      return null;
+/**
+ * Custom hook to get the current user's role
+ * @returns The user's role or null if no role is set
+ */
+export function useUserRole(role: UserRole): Promise<boolean> {
+  const { userId } = useAuth();
+
+  /**
+   * Fetches the user role from the database
+   */
+  const fetchUserRole = async (): Promise<boolean> => {
+    if (!userId) {
+      return false;
     }
 
-    // Get user role from Supabase database
-    const { data, error } = await supabase
-      .from("users")
-      .select("role")
-      .eq("clerk_id", user.userId)
-      .single();
+    try {
+      // Get user role from Supabase database
+      const { data, error } = await supabase
+        .from("users")
+        .select("role")
+        .eq("clerk_id", userId)
+        .single();
 
-    if (error || !data) {
-      console.error("Error fetching role from database:", error);
-      return null;
+      if (error || !data) {
+        console.error("Error fetching role from database:", error);
+        return false;
+      }
+
+      return (data.role as UserRole) === role;
+    } catch (error) {
+      console.error("Error getting user role:", error);
+      return false;
     }
+  };
 
-    return (data.role as UserRole) || null;
-  } catch (error) {
-    console.error("Error getting user role:", error);
-    return null;
-  }
+  return fetchUserRole();
 }

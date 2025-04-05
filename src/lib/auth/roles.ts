@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { supabase } from "@/lib/supabase/supabase";
+import { supabase } from "../supabase";
 import { UserRole } from "@/lib/types/role";
-
 
 /**
  * Check if the current user has a specific role
@@ -18,7 +17,7 @@ export async function checkRole(role: UserRole): Promise<boolean> {
     }
 
     // Get user role from Supabase database
-      const { data, error } = await supabase
+    const { data, error } = await supabase
       .from("users")
       .select("role")
       .eq("clerk_id", user.userId)
@@ -41,7 +40,7 @@ export async function checkRole(role: UserRole): Promise<boolean> {
  * Get the current user's role
  * @returns The user's role or null if no role is set
  */
-export async function getUserRole(): Promise<UserRole | null> {
+export async function GetUserRole(): Promise<UserRole | null> {
   try {
     const user = await auth();
 
