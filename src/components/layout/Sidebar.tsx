@@ -220,7 +220,7 @@ export default function Sidebar({ userId }: SidebarProps) {
           >
             <Link href={`/?chatSlug=${slug}`}>
               <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
-              <span className='text-balanced max-w-[150px]'>
+              <span className='text-balanced max-w-[140px] overflow-x-scroll'>
                 {slug === "default" ? "New Chat" : formatChatTitle(slug)}
               </span>
             </Link>
