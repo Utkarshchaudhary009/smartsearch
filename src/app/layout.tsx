@@ -7,6 +7,7 @@ import { TanstackProvider } from "@/lib/tanstack";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,6 +29,7 @@ export default async function RootLayout({
         lang='en'
         suppressHydrationWarning
       >
+        <Analytics />
         <body className={inter.className}>
           <ThemeProvider
             attribute='class'
@@ -35,7 +37,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-    <TanstackProvider>
+            <TanstackProvider>
               <div className='flex h-screen flex-col'>
                 <Navbar userId={userId} />
                 <div className='flex flex-1 overflow-hidden'>
@@ -53,7 +55,7 @@ export default async function RootLayout({
             </TanstackProvider>
           </ThemeProvider>
         </body>
-        </html>
-      </ClerkProvider>
+      </html>
+    </ClerkProvider>
   );
 }
