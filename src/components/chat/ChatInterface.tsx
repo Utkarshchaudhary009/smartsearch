@@ -9,10 +9,9 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import { formatChatMessages } from "./utils";
 import { ChatSlugGenerator } from "@/lib/utils";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
 import { generateSlugTimestamp } from "@/lib/dateUtils";
-import { Button } from "@/components/ui/button";
 
 interface ChatInterfaceProps {
   userId: string | null;
@@ -33,7 +32,6 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isFirstQuery, setIsFirstQuery] = useState(chatSlug === "default");
-  const [lastMessage, setLastMessage] = useState<string | null>(null);
 
   // Use TanStack hooks
   const { data: chatHistoryData, isLoading: isLoadingHistory } = useChatHistory(
@@ -151,8 +149,6 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const handleSendMessage = async (content: string) => {
     // Clear any previous API errors
     setApiError(null);
-    // Save message for retry functionality
-    setLastMessage(content);
 
     console.log(
       "Debug - handleSendMessage start, userId:",
@@ -316,14 +312,6 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
-  const handleRetry = () => {
-    // Only retry if we have a last message
-    if (lastMessage) {
-      // Re-send the last message
-      handleSendMessage(lastMessage);
-    }
-  };
-
   return (
     <div className='flex flex-1 flex-col h-[80vh] sm:h-[90%]'>
       <div className='flex-1 h-[30vh] sm:h-[40%] md:h-[50%] overflow-y-auto'>
@@ -335,7 +323,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         <div className='p-4 mx-4 mb-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg'>
           <div className='flex items-start gap-3'>
             <AlertCircle className='h-5 w-5 text-red-500 mt-0.5 flex-shrink-0' />
-            <div className='flex-1'>
+            <div>
               <h3 className='font-medium text-red-900 dark:text-red-400'>
                 Connection Error
               </h3>
@@ -343,16 +331,6 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
                 {apiError}
               </p>
             </div>
-            <Button
-              onClick={handleRetry}
-              variant='outline'
-              size='sm'
-              className='flex-shrink-0 h-8 px-2 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700'
-              disabled={isLoading}
-            >
-              <RefreshCw className='h-4 w-4 mr-1' />
-              Retry
-            </Button>
           </div>
         </div>
       )}
