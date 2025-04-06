@@ -33,7 +33,7 @@ import {
   groupChatsByDate,
   generateSlugTimestamp,
 } from "@/lib/dateUtils";
-// import { SheetClose } from "@/components/ui/sheet";
+import { SheetClose } from "@/components/ui/sheet";
 
 interface SidebarProps {
   userId: string | null;
@@ -63,6 +63,7 @@ export default function Sidebar({ userId }: SidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentChatSlug = searchParams.get("chatSlug") || "default";
+  const [isMobileSheet, setIsMobileSheet] = useState(false);
 
   const { data: chatSlugs, isLoading } = useChatSlugs(userId || "");
   const updateChatSlugMutation = useUpdateChatSlug();
@@ -92,6 +93,18 @@ export default function Sidebar({ userId }: SidebarProps) {
       setGroupedChats(grouped);
     }
   }, [chatSlugs, isLoading]);
+
+  useEffect(() => {
+    // Simple check: if screen is mobile size, we're likely in a Sheet
+    setIsMobileSheet(window.innerWidth < 768);
+
+    const handleResize = () => {
+      setIsMobileSheet(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const startNewChat = () => {
     // Force a new chat by explicitly setting chatSlug to default
@@ -275,7 +288,20 @@ export default function Sidebar({ userId }: SidebarProps) {
     <div className='flex flex-col h-full py-4'>
       <div className='px-4 py-2'>
         <h2 className='mb-2 px-2 text-lg font-semibold'>Your Chats</h2>
-        {/* <SheetClose asChild>
+        {isMobileSheet ? (
+          // Only use SheetClose in mobile view (inside Sheet)
+          <SheetClose asChild>
+            <Button
+              variant='outline'
+              className='w-full justify-start'
+              onClick={startNewChat}
+            >
+              <PlusCircle className='mr-2 h-4 w-4' />
+              New Chat
+            </Button>
+          </SheetClose>
+        ) : (
+          // Regular button for desktop view
           <Button
             variant='outline'
             className='w-full justify-start'
@@ -284,7 +310,7 @@ export default function Sidebar({ userId }: SidebarProps) {
             <PlusCircle className='mr-2 h-4 w-4' />
             New Chat
           </Button>
-        </SheetClose> */}
+        )}
       </div>
       <Separator className='my-2' />
       <ScrollArea className='flex-1 px-4'>
