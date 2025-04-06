@@ -78,3 +78,42 @@ export async function getChatSlug(clerkId: string) {
     return null;
   }
 }
+
+// Update chat slug name
+export async function updateChatSlug(oldSlug: string, newSlug: string) {
+  try {
+    const { data, error } = await supabase.rpc("update_chat_slug", {
+      old_slug: oldSlug,
+      new_slug: newSlug,
+    });
+
+    if (error) {
+      console.error("Error updating chat slug:", error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error in updateChatSlug:", error);
+    return { success: false, error };
+  }
+}
+
+// Delete all chats with a particular slug
+export async function deleteChatsBySlug(slug: string) {
+  try {
+    const { data, error } = await supabase.rpc("delete_chats_by_slug", {
+      target_slug: slug,
+    });
+
+    if (error) {
+      console.error("Error deleting chats by slug:", error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error in deleteChatsBySlug:", error);
+    return { success: false, error };
+  }
+}

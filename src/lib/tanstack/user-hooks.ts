@@ -16,7 +16,6 @@ const userKeys = {
 };
 
 
-
 // Hook to get user by Clerk ID
 export function useUserById(clerkId: string) {
   return useQuery({

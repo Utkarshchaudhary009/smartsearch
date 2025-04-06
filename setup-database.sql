@@ -48,8 +48,9 @@ CREATE TABLE chat_history (
   chat_slug TEXT NOT NULL
 );
 
--- Add index for faster querying by clerk_id
+-- Add index for faster querying by chat_slug
 CREATE INDEX idx_chat_history_id ON chat_history (id);
+CREATE INDEX idx_chat_history_chat_slug ON chat_history (chat_slug);
 
 -- Enable Row Level Security on Tables
 ALTER TABLE chat_history ENABLE ROW LEVEL SECURITY;
@@ -75,3 +76,29 @@ create policy "users can delete their own chat history"
 on public.chat_history
 for delete to anon
 using (true);
+
+-- Create functions for chat slug operations
+
+-- Function to update chat slug name
+CREATE OR REPLACE FUNCTION update_chat_slug(
+  old_slug TEXT,
+  new_slug TEXT
+) RETURNS VOID AS $$
+BEGIN
+  UPDATE chat_history
+  SET 
+    chat_slug = new_slug,
+    updated_at = NOW()
+  WHERE chat_slug = old_slug;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to delete all chats with a particular chat slug
+CREATE OR REPLACE FUNCTION delete_chats_by_slug(
+  target_slug TEXT
+) RETURNS VOID AS $$
+BEGIN
+  DELETE FROM chat_history
+  WHERE chat_slug = target_slug;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   saveChatHistory, 
   getChatHistory, 
-  getChatSlug 
+  getChatSlug,
+  updateChatSlug,
+  deleteChatsBySlug
 } from '../services/chat-service';
 
 // Key factory for consistent cache keys
@@ -58,5 +60,36 @@ export function useChatSlugs(clerkId: string) {
     queryKey: chatKeys.slugs(clerkId),
     queryFn: () => getChatSlug(clerkId),
     enabled: !!clerkId,
+  });
+}
+
+// Hook to update chat slug name
+export function useUpdateChatSlug() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ oldSlug, newSlug }: { oldSlug: string, newSlug: string }) => {
+      return await updateChatSlug(oldSlug, newSlug);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate chat slug queries to refetch
+      console.log("invalidating chat keys", variables);
+      queryClient.invalidateQueries({ queryKey: chatKeys.all });
+    },
+  });
+}
+
+// Hook to delete chats by slug
+export function useDeleteChatsBySlug() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (slug: string) => {
+      return await deleteChatsBySlug(slug);
+    },
+    onSuccess: () => {
+      // Invalidate chat slug queries to refetch
+      queryClient.invalidateQueries({ queryKey: chatKeys.all });
+    },
   });
 }
