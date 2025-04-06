@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, KeyboardEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -55,7 +55,7 @@ export default function Sidebar({ userId }: SidebarProps) {
   const [formattedSlugs, setFormattedSlugs] = useState<Array<string>>([]);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [newSlugName, setNewSlugName] = useState<string>("");
-  const [updatingSlug, setUpdatingSlug] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function Sidebar({ userId }: SidebarProps) {
 
   const handleEditClick = (slug: string) => {
     setEditingSlug(slug);
-    setNewSlugName(formatChatTitle(slug).replace(/\s+/g, "-").toLowerCase());
+    setNewSlugName(formatChatTitle(slug).replace(" ", "-").toLowerCase());
   };
 
   const handleDeleteClick = async (slug: string) => {
@@ -113,7 +113,7 @@ export default function Sidebar({ userId }: SidebarProps) {
     }
 
     try {
-      setUpdatingSlug(oldSlug);
+      setIsUpdating(true);
       // Create a proper slug with timestamp to ensure uniqueness
       const timestamp =
         oldSlug.match(/\d{6}$/)?.[0] ||
@@ -142,26 +142,20 @@ export default function Sidebar({ userId }: SidebarProps) {
       toast.error("An error occurred while updating");
       console.error("Error updating chat:", error);
     } finally {
-      setUpdatingSlug(null);
+      setIsUpdating(false);
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, slug: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveEdit(slug);
     }
   };
 
   const handleCancelEdit = () => {
     setEditingSlug(null);
     setNewSlugName("");
-  };
-
-  // Handle keyboard events for the edit input
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    slug: string
-  ) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSaveEdit(slug);
-    } else if (e.key === "Escape") {
-      handleCancelEdit();
-    }
   };
 
   return (
@@ -188,7 +182,7 @@ export default function Sidebar({ userId }: SidebarProps) {
             formattedSlugs.map((slug) => (
               <div
                 key={slug}
-                className='flex items-center group'
+                className='flex items-center group relative'
               >
                 {editingSlug === slug ? (
                   <div className='flex w-full items-center space-x-2 py-1'>
@@ -198,97 +192,82 @@ export default function Sidebar({ userId }: SidebarProps) {
                       onChange={(e) => setNewSlugName(e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, slug)}
                       autoFocus
-                      disabled={updatingSlug === slug}
                     />
-                    {updatingSlug === slug ? (
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-8 px-2 flex-shrink-0'
-                        disabled
-                      >
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => handleSaveEdit(slug)}
+                      className='h-8 px-2'
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
                         <Loader2 className='h-4 w-4 animate-spin' />
-                        <span className='ml-2'>Saving</span>
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => handleSaveEdit(slug)}
-                          className='h-8 px-2 flex-shrink-0'
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={handleCancelEdit}
-                          className='h-8 px-2 flex-shrink-0'
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    )}
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={handleCancelEdit}
+                      className='h-8 px-2'
+                      disabled={isUpdating}
+                    >
+                      Cancel
+                    </Button>
                   </div>
                 ) : (
-                  <div className='flex w-full items-center'>
+                  <>
                     <Button
                       variant={currentChatSlug === slug ? "secondary" : "ghost"}
-                      className='w-full justify-start'
+                      className='w-full justify-start pr-10'
                       asChild
-                      disabled={deletingSlug === slug}
                     >
-                      <Link
-                        href={`/?chatSlug=${slug}`}
-                        className='flex w-full'
-                      >
-                        {deletingSlug === slug ? (
-                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                        ) : (
-                          <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
-                        )}
-                        <span className='truncate'>
+                      <Link href={`/?chatSlug=${slug}`}>
+                        <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
+                        <span className='truncate max-w-[160px]'>
                           {slug === "default"
                             ? "New Chat"
-                            : deletingSlug === slug
-                            ? "Deleting..."
                             : formatChatTitle(slug)}
                         </span>
                       </Link>
                     </Button>
-                    {slug !== "default" && !deletingSlug && (
-                      <div className='opacity-0 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0'>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              className='h-8 w-8 p-0'
-                              disabled={deletingSlug === slug}
-                            >
-                              <MoreVertical className='h-4 w-4' />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align='end'>
-                            <DropdownMenuItem
-                              onClick={() => handleEditClick(slug)}
-                            >
-                              <Pencil className='mr-2 h-4 w-4' />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClick(slug)}
-                              disabled={deletingSlug === slug}
-                            >
-                              <Trash2 className='mr-2 h-4 w-4' />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                    {slug !== "default" && (
+                      <div className='absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                        {deletingSlug === slug ? (
+                          <div className='flex items-center justify-center w-8 h-8'>
+                            <Loader2 className='h-4 w-4 animate-spin' />
+                          </div>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='h-8 w-8 p-0'
+                              >
+                                <MoreVertical className='h-4 w-4' />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align='end'>
+                              <DropdownMenuItem
+                                onClick={() => handleEditClick(slug)}
+                              >
+                                <Pencil className='mr-2 h-4 w-4' />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteClick(slug)}
+                              >
+                                <Trash2 className='mr-2 h-4 w-4' />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             ))
