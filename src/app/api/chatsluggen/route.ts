@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-
+import { GoogleGenAI } from "@google/genai";
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const userMessage = searchParams.get('message');

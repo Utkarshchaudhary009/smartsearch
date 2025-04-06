@@ -26,7 +26,7 @@ export default function Navbar({ userId }: NavbarProps) {
           SmartSearch
         </span>
 
-        <div className='ml-auto flex items-center space-x-4'>
+        <div className='ml-auto flex items-center space-x-2'>
           <Button
             variant='ghost'
             size='icon'
@@ -57,7 +57,7 @@ export default function Navbar({ userId }: NavbarProps) {
                     size='icon'
                     className='md:hidden'
                   >
-                    <History className='h-5 w-5' />
+                    <History className='h-8 w-8' />
                     <span className='sr-only'>Chat History</span>
                   </Button>
                 </SheetTrigger>
