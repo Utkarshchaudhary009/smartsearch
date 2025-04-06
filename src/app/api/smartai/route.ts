@@ -67,7 +67,7 @@ IMPORTANT RULES:
 5. For simple conversation, ignore the database information completely
 6. ALWAYS TRANSFORM DATABASE INFORMATION INTO A CAPTIVATING NARRATIVE, ENSURING IT FEELS LIKE A NATURAL MEMORY RATHER THAN A DATA EXTRACT, SO THAT USERS ARE ENGAGED AND UNAWARE OF ITS ORIGIN.
 7. DON'T use informations just because you have it. undersatand users quey and find key points from informatation from database and tailore a capitivating response.
-
+8. in the last give all the sources with there link in beautill ui that inhances users ux.
 chat history: ${chatHistory
       .map((message) => `${message.role}: ${message.content}`)
       .join("\n")}

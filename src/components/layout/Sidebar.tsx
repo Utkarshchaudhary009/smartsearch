@@ -14,6 +14,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -54,6 +55,8 @@ export default function Sidebar({ userId }: SidebarProps) {
   const [formattedSlugs, setFormattedSlugs] = useState<Array<string>>([]);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [newSlugName, setNewSlugName] = useState<string>("");
+  const [updatingSlug, setUpdatingSlug] = useState<string | null>(null);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
   useEffect(() => {
     if (chatSlugs && !isLoading) {
@@ -79,11 +82,12 @@ export default function Sidebar({ userId }: SidebarProps) {
 
   const handleEditClick = (slug: string) => {
     setEditingSlug(slug);
-    setNewSlugName(formatChatTitle(slug).replace(" ", "-").toLowerCase());
+    setNewSlugName(formatChatTitle(slug).replace(/\s+/g, "-").toLowerCase());
   };
 
   const handleDeleteClick = async (slug: string) => {
     try {
+      setDeletingSlug(slug);
       const result = await deleteChatsBySlugMutation.mutateAsync(slug);
       if (result.success) {
         toast.success("Chat deleted successfully");
@@ -97,6 +101,8 @@ export default function Sidebar({ userId }: SidebarProps) {
     } catch (error) {
       toast.error("An error occurred while deleting");
       console.error("Error deleting chat:", error);
+    } finally {
+      setDeletingSlug(null);
     }
   };
 
@@ -107,6 +113,7 @@ export default function Sidebar({ userId }: SidebarProps) {
     }
 
     try {
+      setUpdatingSlug(oldSlug);
       // Create a proper slug with timestamp to ensure uniqueness
       const timestamp =
         oldSlug.match(/\d{6}$/)?.[0] ||
@@ -134,12 +141,27 @@ export default function Sidebar({ userId }: SidebarProps) {
     } catch (error) {
       toast.error("An error occurred while updating");
       console.error("Error updating chat:", error);
+    } finally {
+      setUpdatingSlug(null);
     }
   };
 
   const handleCancelEdit = () => {
     setEditingSlug(null);
     setNewSlugName("");
+  };
+
+  // Handle keyboard events for the edit input
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    slug: string
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveEdit(slug);
+    } else if (e.key === "Escape") {
+      handleCancelEdit();
+    }
   };
 
   return (
@@ -174,49 +196,76 @@ export default function Sidebar({ userId }: SidebarProps) {
                       className='h-8'
                       value={newSlugName}
                       onChange={(e) => setNewSlugName(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, slug)}
                       autoFocus
+                      disabled={updatingSlug === slug}
                     />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => handleSaveEdit(slug)}
-                      className='h-8 px-2'
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={handleCancelEdit}
-                      className='h-8 px-2'
-                    >
-                      Cancel
-                    </Button>
+                    {updatingSlug === slug ? (
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-8 px-2 flex-shrink-0'
+                        disabled
+                      >
+                        <Loader2 className='h-4 w-4 animate-spin' />
+                        <span className='ml-2'>Saving</span>
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          onClick={() => handleSaveEdit(slug)}
+                          className='h-8 px-2 flex-shrink-0'
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          onClick={handleCancelEdit}
+                          className='h-8 px-2 flex-shrink-0'
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    )}
                   </div>
                 ) : (
-                  <>
+                  <div className='flex w-full items-center'>
                     <Button
                       variant={currentChatSlug === slug ? "secondary" : "ghost"}
                       className='w-full justify-start'
                       asChild
+                      disabled={deletingSlug === slug}
                     >
-                      <Link href={`/?chatSlug=${slug}`}>
-                        <MessageSquare className='mr-2 h-4 w-4' />
+                      <Link
+                        href={`/?chatSlug=${slug}`}
+                        className='flex w-full'
+                      >
+                        {deletingSlug === slug ? (
+                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        ) : (
+                          <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
+                        )}
                         <span className='truncate'>
                           {slug === "default"
                             ? "New Chat"
+                            : deletingSlug === slug
+                            ? "Deleting..."
                             : formatChatTitle(slug)}
                         </span>
                       </Link>
                     </Button>
-                    {slug !== "default" && (
-                      <div className='opacity-0 group-hover:opacity-100 transition-opacity'>
+                    {slug !== "default" && !deletingSlug && (
+                      <div className='opacity-0 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0'>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant='ghost'
                               size='sm'
                               className='h-8 w-8 p-0'
+                              disabled={deletingSlug === slug}
                             >
                               <MoreVertical className='h-4 w-4' />
                             </Button>
@@ -230,6 +279,7 @@ export default function Sidebar({ userId }: SidebarProps) {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteClick(slug)}
+                              disabled={deletingSlug === slug}
                             >
                               <Trash2 className='mr-2 h-4 w-4' />
                               Delete
@@ -238,7 +288,7 @@ export default function Sidebar({ userId }: SidebarProps) {
                         </DropdownMenu>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             ))
