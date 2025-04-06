@@ -22,7 +22,10 @@ export default function MarkdownRenderer({
 }: MarkdownRendererProps) {
   return (
     <div
-      className={cn("prose prose-sm dark:prose-invert max-w-none text-wrap", className)}
+      className={cn(
+        "prose prose-sm dark:prose-invert max-w-[80%] [@media(max-width:768px)]:max-w-none text-wrap",
+        className
+      )}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
