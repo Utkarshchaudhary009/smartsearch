@@ -33,6 +33,7 @@ import {
   groupChatsByDate,
   generateSlugTimestamp,
 } from "@/lib/dateUtils";
+import { SheetClose } from "@/components/ui/sheet";
 
 interface SidebarProps {
   userId: string | null;
@@ -274,14 +275,16 @@ export default function Sidebar({ userId }: SidebarProps) {
     <div className='flex flex-col h-full py-4'>
       <div className='px-4 py-2'>
         <h2 className='mb-2 px-2 text-lg font-semibold'>Your Chats</h2>
-        <Button
-          variant='outline'
-          className='w-full justify-start'
-          onClick={startNewChat}
-        >
-          <PlusCircle className='mr-2 h-4 w-4' />
-          New Chat
-        </Button>
+        <SheetClose asChild>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+            onClick={startNewChat}
+          >
+            <PlusCircle className='mr-2 h-4 w-4' />
+            New Chat
+          </Button>
+        </SheetClose>
       </div>
       <Separator className='my-2' />
       <ScrollArea className='flex-1 px-4'>
