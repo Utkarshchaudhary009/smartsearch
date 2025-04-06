@@ -9,9 +9,9 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import { formatChatMessages } from "./utils";
 import { ChatSlugGenerator } from "@/lib/utils";
-import { generateChatSlugWithDate } from "@/lib/dateUtils";
 import { AlertCircle } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
+import { generateSlugTimestamp } from "@/lib/dateUtils";
 
 interface ChatInterfaceProps {
   userId: string | null;
@@ -140,8 +140,10 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       .replace(/\s+/g, "-") // Replace spaces with hyphens
       .slice(0, 50); // Limit length
 
-    // Use our new utility to add proper date format YYYYMMDD-HHmmss
-    return generateChatSlugWithDate(baseSlug);
+    // Add timestamp to ensure uniqueness using the new date utility function
+    const timestamp = generateSlugTimestamp();
+
+    return `${baseSlug}-${timestamp}`;
   };
 
   const handleSendMessage = async (content: string) => {

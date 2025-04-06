@@ -28,7 +28,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatChatDate } from "@/lib/dateUtils";
+import {
+  cleanSlugForDisplay,
+  groupChatsByDate,
+  generateSlugTimestamp,
+} from "@/lib/dateUtils";
 
 interface SidebarProps {
   userId: string | null;
@@ -36,10 +40,9 @@ interface SidebarProps {
 
 // Helper function to format a chat slug into a more readable title
 function formatChatTitle(slug: string): string {
-  return slug
+  // Use the cleanSlugForDisplay utility function
+  return cleanSlugForDisplay(slug)
     .replace(/-/g, " ")
-    .replace(/(\d{8}-\d{6})$/, "") // Remove new format date timestamp (YYYYMMDD-HHmmss)
-    .replace(/(\d{6})$/, "") // Remove old format timestamp (for backward compatibility)
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ")
@@ -77,51 +80,13 @@ export default function Sidebar({ userId }: SidebarProps) {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
-  // Group chats by time periods
-  const groupChatsByDate = (slugs: string[]) => {
-    const groups: GroupedChats = {
-      today: [],
-      yesterday: [],
-      week: [],
-      month: [],
-      older: [],
-    };
-
-    // Always keep default at top
-    if (slugs.includes("default")) {
-      groups.today.push("default");
-    }
-
-    // Group other chats using the improved date utility
-    slugs.forEach((slug) => {
-      if (slug === "default") return;
-
-      // Use our formatChatDate utility to get date information
-      const { diffDays } = formatChatDate(slug);
-
-      if (diffDays === 0) {
-        groups.today.push(slug);
-      } else if (diffDays === 1) {
-        groups.yesterday.push(slug);
-      } else if (diffDays < 7) {
-        groups.week.push(slug);
-      } else if (diffDays < 30) {
-        groups.month.push(slug);
-      } else {
-        groups.older.push(slug);
-      }
-    });
-
-    return groups;
-  };
-
   useEffect(() => {
     if (chatSlugs && !isLoading) {
       // Convert Set to Array
       const slugsArray = Array.from(chatSlugs);
       setFormattedSlugs(slugsArray);
 
-      // Group chats by date
+      // Group chats by date using utility function
       const grouped = groupChatsByDate(slugsArray);
       setGroupedChats(grouped);
     }
@@ -170,12 +135,11 @@ export default function Sidebar({ userId }: SidebarProps) {
 
     try {
       setIsUpdating(true);
-
-      // Clean up the slug name
-      const cleanSlug = newSlugName.toLowerCase().replace(/\s+/g, "-");
-
-      // Use our new utility to generate a proper slug with date YYYYMMDD-HHmmss
-      const formattedNewSlug = generateChatSlugWithDate(cleanSlug);
+      // Generate a new timestamp for the renamed chat
+      const timestamp = generateSlugTimestamp();
+      const formattedNewSlug = `${newSlugName
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${timestamp}`;
 
       const result = await updateChatSlugMutation.mutateAsync({
         oldSlug: oldSlug,

@@ -11,7 +11,7 @@ export async function GET(request) {
   const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_KEY });
   const prompt = `
 You are an expert in generating meaningful chat slugs so that users can understand the whole conversation in that chat session.
-Keep it SHORT but meaningful, in 4 to 5 words ONLY.
+Keep it SHORT but meaningful, in 4 to 5 words ONLY.Never Ever mention ant data from your side utile you are confirm about it from the user message.
 
 User message: ${userMessage}
 `;
