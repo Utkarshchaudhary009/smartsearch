@@ -263,7 +263,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       // Now generate a new slug just before saving if needed
       if (isFirstQuery && currentWorkingSlug === "default") {
         // Generate the new slug just before saving
-        const newSlug = await createSlugFromQuery(content);
+        const newSlug = await createSlugFromQuery(`user:"${content}" -> Ai:"${data.message}"`);
         console.log("Debug - created new slug for saving:", newSlug);
 
         // Update our working slug state

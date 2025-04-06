@@ -295,7 +295,7 @@ export default function Sidebar({ userId, closeSidebar }: SidebarProps) {
         </Button>
       </div>
       <Separator className='my-2' />
-      <ScrollArea className='flex-1 px-4'>
+      <ScrollArea className='flex-1 px-4 overflow-y-scroll'>
         {isLoading ? (
           <div className='flex justify-center py-4'>
             <p className='text-sm text-muted-foreground'>Loading chats...</p>
