@@ -25,7 +25,7 @@ export default function Navbar({ userId }: NavbarProps) {
           SmartSearch
         </span>
 
-        <div className='ml-auto flex items-center space-x-1'>
+        <div className='ml-auto flex items-center '>
           <Button
             variant='ghost'
             size='icon'
@@ -36,7 +36,7 @@ export default function Navbar({ userId }: NavbarProps) {
             <Moon className='absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
             <span className='sr-only'>Toggle theme</span>
           </Button>
-          <div className='flex justify-end items-center p-4 gap-2 h-16'>
+          <div className='flex justify-end items-center p-1 gap-2 h-16'>
             <SignedOut>
               <SignInButton />
               <SignUpButton />
