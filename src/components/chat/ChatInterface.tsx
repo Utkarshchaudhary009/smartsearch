@@ -8,6 +8,7 @@ import { Message } from "./types";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import { formatChatMessages } from "./utils";
+import { ChatSlugGenerator } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
 
@@ -128,9 +129,10 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   }, [chatSlug]);
 
   // Helper to create a chat slug from a query
-  const createSlugFromQuery = (query: string): string => {
+  const createSlugFromQuery = async (query: string): Promise<string> => {
     // Create a slug from the first 5 words (or fewer if there are less than 5)
-    const words = query.trim().split(/\s+/).slice(0, 5).join("-");
+    const slug = await ChatSlugGenerator(query);
+    const words = slug.trim().split(/\s+/).slice(0, 5).join("-");
     const baseSlug = words
       .toLowerCase()
       .replace(/[^\w\s-]/g, "") // Remove special characters
@@ -160,7 +162,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     // Generate a new slug for the first query at default route
     let currentChatSlug = chatSlug;
     if (isFirstQuery && chatSlug === "default") {
-      currentChatSlug = createSlugFromQuery(content);
+      currentChatSlug = await createSlugFromQuery(content);
       console.log("Debug - created new slug:", currentChatSlug);
 
       // Use replace instead of push to avoid back button returning to default chat
