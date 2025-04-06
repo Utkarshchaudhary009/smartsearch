@@ -140,7 +140,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       .slice(0, 50); // Limit length
 
     // Add timestamp to ensure uniqueness
-    const timestamp = new Date().getTime().toString().slice(-6);
+    const timestamp = new Date().getTime().toString();
     return `${baseSlug}-${timestamp}`;
   };
 
@@ -312,7 +312,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
   return (
     <div className='flex flex-1 flex-col h-[90%]'>
-      <div className='flex-1 h-[90%] overflow-y-auto'>
+      <div className='flex-1 h-[40%] overflow-y-auto'>
         <MessageList messages={messages} />
         <div ref={messagesEndRef} />
       </div>
