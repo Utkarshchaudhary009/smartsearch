@@ -6,13 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export async function ChatSlugGenerator(userMessage: string) {
-  const response = await fetch(`/api/chatsluggen`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ message: userMessage }),
-  });
+  const response = await fetch(
+    `/api/chatsluggen?message=${encodeURIComponent(userMessage)}`
+  );
   const data = await response.json();
   if (response.ok) {
     console.log("Chat slug:", data.response);
