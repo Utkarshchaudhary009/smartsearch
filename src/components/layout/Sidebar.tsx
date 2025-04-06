@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatChatDate } from "@/lib/dateUtils";
 
 interface SidebarProps {
   userId: string | null;
@@ -37,7 +38,8 @@ interface SidebarProps {
 function formatChatTitle(slug: string): string {
   return slug
     .replace(/-/g, " ")
-    .replace(/(\d{6})$/, "") // Remove timestamp if present
+    .replace(/(\d{8}-\d{6})$/, "") // Remove new format date timestamp (YYYYMMDD-HHmmss)
+    .replace(/(\d{6})$/, "") // Remove old format timestamp (for backward compatibility)
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ")
@@ -75,23 +77,6 @@ export default function Sidebar({ userId }: SidebarProps) {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
-  // Extract timestamp from slug and get date
-  const getDateFromSlug = (slug: string): Date => {
-    const timestampMatch = slug.match(/(\d{6})$/);
-    if (timestampMatch && timestampMatch[1]) {
-      // This is a simplification - ideally we'd have actual dates stored
-      // Use the timestamp as milliseconds from a recent date
-      const now = new Date();
-      const timestamp = parseInt(timestampMatch[1], 10);
-      // Calculate days ago based on last 6 digits
-      const daysAgo = Math.floor(timestamp / 10000); // Rough estimate
-      const result = new Date();
-      result.setDate(now.getDate() - (daysAgo % 30)); // Cap at 30 days for demo
-      return result;
-    }
-    return new Date(); // Default to now
-  };
-
   // Group chats by time periods
   const groupChatsByDate = (slugs: string[]) => {
     const groups: GroupedChats = {
@@ -107,15 +92,12 @@ export default function Sidebar({ userId }: SidebarProps) {
       groups.today.push("default");
     }
 
-    // Group other chats
+    // Group other chats using the improved date utility
     slugs.forEach((slug) => {
       if (slug === "default") return;
 
-      const date = getDateFromSlug(slug);
-      const now = new Date();
-      const diffDays = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-      );
+      // Use our formatChatDate utility to get date information
+      const { diffDays } = formatChatDate(slug);
 
       if (diffDays === 0) {
         groups.today.push(slug);
@@ -188,13 +170,12 @@ export default function Sidebar({ userId }: SidebarProps) {
 
     try {
       setIsUpdating(true);
-      // Create a proper slug with timestamp to ensure uniqueness
-      const timestamp =
-        oldSlug.match(/\d{6}$/)?.[0] ||
-        new Date().getTime().toString().slice(-6);
-      const formattedNewSlug = `${newSlugName
-        .toLowerCase()
-        .replace(/\s+/g, "-")}-${timestamp}`;
+
+      // Clean up the slug name
+      const cleanSlug = newSlugName.toLowerCase().replace(/\s+/g, "-");
+
+      // Use our new utility to generate a proper slug with date YYYYMMDD-HHmmss
+      const formattedNewSlug = generateChatSlugWithDate(cleanSlug);
 
       const result = await updateChatSlugMutation.mutateAsync({
         oldSlug: oldSlug,
@@ -289,7 +270,7 @@ export default function Sidebar({ userId }: SidebarProps) {
               ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                      <MoreVertical className='h-4 w-4' />
+                    <MoreVertical className='h-4 w-4' />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align='end'>
                     <DropdownMenuItem onClick={() => handleEditClick(slug)}>

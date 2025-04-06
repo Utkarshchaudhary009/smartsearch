@@ -9,6 +9,7 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import { formatChatMessages } from "./utils";
 import { ChatSlugGenerator } from "@/lib/utils";
+import { generateChatSlugWithDate } from "@/lib/dateUtils";
 import { AlertCircle } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
 
@@ -139,9 +140,8 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       .replace(/\s+/g, "-") // Replace spaces with hyphens
       .slice(0, 50); // Limit length
 
-    // Add timestamp to ensure uniqueness
-    const timestamp = new Date().getTime().toString();
-    return `${baseSlug}-${timestamp}`;
+    // Use our new utility to add proper date format YYYYMMDD-HHmmss
+    return generateChatSlugWithDate(baseSlug);
   };
 
   const handleSendMessage = async (content: string) => {
@@ -311,8 +311,8 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   };
 
   return (
-    <div className='flex flex-1 flex-col h-[90%]'>
-      <div className='flex-1 h-[40%] overflow-y-auto'>
+    <div className='flex flex-1 flex-col h-[80vh] sm:h-[90%]'>
+      <div className='flex-1 h-[30vh] sm:h-[40%] md:h-[50%] overflow-y-auto'>
         <MessageList messages={messages} />
         <div ref={messagesEndRef} />
       </div>

@@ -32,7 +32,7 @@ export default function ChatInput({
   };
 
   return (
-    <div className='p-4 border-t'>
+    <div className='p-2 sm:p-4 border-t'>
       <div className='flex gap-2'>
         <Textarea
           placeholder='Message SmartSearch'
@@ -41,11 +41,11 @@ export default function ChatInput({
             setInput(e.target.value)
           }
           onKeyDown={handleKeyDown}
-          className='min-h-[44px] max-h-32'
+          className='min-h-[36px] sm:min-h-[44px] max-h-32'
           disabled={isLoading || disabled}
         />
         <Button
-          className='px-8'
+          className='px-4 sm:px-8'
           onClick={handleSendMessage}
           disabled={!input.trim() || isLoading || disabled}
         >
