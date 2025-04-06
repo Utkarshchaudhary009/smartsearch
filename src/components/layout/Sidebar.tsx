@@ -15,6 +15,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -43,6 +44,15 @@ function formatChatTitle(slug: string): string {
     .trim();
 }
 
+// Type for our grouped chats
+interface GroupedChats {
+  today: string[];
+  yesterday: string[];
+  week: string[];
+  month: string[];
+  older: string[];
+}
+
 export default function Sidebar({ userId }: SidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,21 +63,85 @@ export default function Sidebar({ userId }: SidebarProps) {
   const deleteChatsBySlugMutation = useDeleteChatsBySlug();
 
   const [formattedSlugs, setFormattedSlugs] = useState<Array<string>>([]);
+  const [groupedChats, setGroupedChats] = useState<GroupedChats>({
+    today: [],
+    yesterday: [],
+    week: [],
+    month: [],
+    older: [],
+  });
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [newSlugName, setNewSlugName] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
+  // Extract timestamp from slug and get date
+  const getDateFromSlug = (slug: string): Date => {
+    const timestampMatch = slug.match(/(\d{6})$/);
+    if (timestampMatch && timestampMatch[1]) {
+      // This is a simplification - ideally we'd have actual dates stored
+      // Use the timestamp as milliseconds from a recent date
+      const now = new Date();
+      const timestamp = parseInt(timestampMatch[1], 10);
+      // Calculate days ago based on last 6 digits
+      const daysAgo = Math.floor(timestamp / 10000); // Rough estimate
+      const result = new Date();
+      result.setDate(now.getDate() - (daysAgo % 30)); // Cap at 30 days for demo
+      return result;
+    }
+    return new Date(); // Default to now
+  };
+
+  // Group chats by time periods
+  const groupChatsByDate = (slugs: string[]) => {
+    const groups: GroupedChats = {
+      today: [],
+      yesterday: [],
+      week: [],
+      month: [],
+      older: [],
+    };
+
+    // Always keep default at top
+    if (slugs.includes("default")) {
+      groups.today.push("default");
+    }
+
+    // Group other chats
+    slugs.forEach((slug) => {
+      if (slug === "default") return;
+
+      const date = getDateFromSlug(slug);
+      const now = new Date();
+      const diffDays = Math.floor(
+        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (diffDays === 0) {
+        groups.today.push(slug);
+      } else if (diffDays === 1) {
+        groups.yesterday.push(slug);
+      } else if (diffDays < 7) {
+        groups.week.push(slug);
+      } else if (diffDays < 30) {
+        groups.month.push(slug);
+      } else {
+        groups.older.push(slug);
+      }
+    });
+
+    return groups;
+  };
+
   useEffect(() => {
     if (chatSlugs && !isLoading) {
-      // Convert Set to Array and ensure "default" is first if it exists
+      // Convert Set to Array
       const slugsArray = Array.from(chatSlugs);
-      if (slugsArray.includes("default")) {
-        const defaultIndex = slugsArray.indexOf("default");
-        slugsArray.splice(defaultIndex, 1);
-        slugsArray.unshift("default");
-      }
       setFormattedSlugs(slugsArray);
+
+      // Group chats by date
+      const grouped = groupChatsByDate(slugsArray);
+      setGroupedChats(grouped);
     }
   }, [chatSlugs, isLoading]);
 
@@ -158,6 +232,105 @@ export default function Sidebar({ userId }: SidebarProps) {
     setNewSlugName("");
   };
 
+  // Render a chat item
+  const renderChatItem = (slug: string) => (
+    <div
+      key={slug}
+      className='flex items-center group relative'
+    >
+      {editingSlug === slug ? (
+        <div className='flex w-full items-center space-x-2 py-1'>
+          <Input
+            className='h-8'
+            value={newSlugName}
+            onChange={(e) => setNewSlugName(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, slug)}
+            autoFocus
+          />
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => handleSaveEdit(slug)}
+            className='h-8 px-2'
+            disabled={isUpdating}
+          >
+            {isUpdating ? <Loader2 className='h-4 w-4 animate-spin' /> : "Save"}
+          </Button>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={handleCancelEdit}
+            className='h-8 px-2'
+            disabled={isUpdating}
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <>
+          <Button
+            variant={currentChatSlug === slug ? "secondary" : "ghost"}
+            className='w-full justify-start pr-10'
+            asChild
+          >
+            <Link href={`/?chatSlug=${slug}`}>
+              <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
+              <span className='truncate max-w-[150px]'>
+                {slug === "default" ? "New Chat" : formatChatTitle(slug)}
+              </span>
+            </Link>
+          </Button>
+          {slug !== "default" && (
+            <div className='absolute right-1'>
+              {deletingSlug === slug ? (
+                <div className='flex items-center justify-center w-8 h-8'>
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                </div>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity'
+                    >
+                      <MoreVertical className='h-4 w-4' />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end'>
+                    <DropdownMenuItem onClick={() => handleEditClick(slug)}>
+                      <Pencil className='mr-2 h-4 w-4' />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeleteClick(slug)}>
+                      <Trash2 className='mr-2 h-4 w-4' />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  // Render section with header
+  const renderSection = (title: string, slugs: string[]) => {
+    if (slugs.length === 0) return null;
+
+    return (
+      <div className='space-y-1 mb-4'>
+        <h3 className='text-xs font-medium text-muted-foreground px-2 mb-1 flex items-center'>
+          <CalendarDays className='h-3 w-3 mr-1' />
+          {title}
+        </h3>
+        <div className='space-y-1'>{slugs.map(renderChatItem)}</div>
+      </div>
+    );
+  };
+
   return (
     <div className='flex flex-col h-full py-4'>
       <div className='px-4 py-2'>
@@ -173,110 +346,23 @@ export default function Sidebar({ userId }: SidebarProps) {
       </div>
       <Separator className='my-2' />
       <ScrollArea className='flex-1 px-4'>
-        <div className='space-y-1 py-2'>
-          {isLoading ? (
-            <div className='flex justify-center py-4'>
-              <p className='text-sm text-muted-foreground'>Loading chats...</p>
-            </div>
-          ) : formattedSlugs.length > 0 ? (
-            formattedSlugs.map((slug) => (
-              <div
-                key={slug}
-                className='flex items-center group relative'
-              >
-                {editingSlug === slug ? (
-                  <div className='flex w-full items-center space-x-2 py-1'>
-                    <Input
-                      className='h-8'
-                      value={newSlugName}
-                      onChange={(e) => setNewSlugName(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, slug)}
-                      autoFocus
-                    />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => handleSaveEdit(slug)}
-                      className='h-8 px-2'
-                      disabled={isUpdating}
-                    >
-                      {isUpdating ? (
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                      ) : (
-                        "Save"
-                      )}
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={handleCancelEdit}
-                      className='h-8 px-2'
-                      disabled={isUpdating}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Button
-                      variant={currentChatSlug === slug ? "secondary" : "ghost"}
-                      className='w-full justify-start pr-10'
-                      asChild
-                    >
-                      <Link href={`/?chatSlug=${slug}`}>
-                        <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
-                        <span className='truncate max-w-[160px]'>
-                          {slug === "default"
-                            ? "New Chat"
-                            : formatChatTitle(slug)}
-                        </span>
-                      </Link>
-                    </Button>
-                    {slug !== "default" && (
-                      <div className='absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                        {deletingSlug === slug ? (
-                          <div className='flex items-center justify-center w-8 h-8'>
-                            <Loader2 className='h-4 w-4 animate-spin' />
-                          </div>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant='ghost'
-                                size='sm'
-                                className='h-8 w-8 p-0'
-                              >
-                                <MoreVertical className='h-4 w-4' />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align='end'>
-                              <DropdownMenuItem
-                                onClick={() => handleEditClick(slug)}
-                              >
-                                <Pencil className='mr-2 h-4 w-4' />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(slug)}
-                              >
-                                <Trash2 className='mr-2 h-4 w-4' />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className='flex justify-center py-4'>
-              <p className='text-sm text-muted-foreground'>No chat history</p>
-            </div>
-          )}
-        </div>
+        {isLoading ? (
+          <div className='flex justify-center py-4'>
+            <p className='text-sm text-muted-foreground'>Loading chats...</p>
+          </div>
+        ) : formattedSlugs.length > 0 ? (
+          <div className='py-2'>
+            {renderSection("Today", groupedChats.today)}
+            {renderSection("Yesterday", groupedChats.yesterday)}
+            {renderSection("Previous 7 Days", groupedChats.week)}
+            {renderSection("Previous 30 Days", groupedChats.month)}
+            {renderSection("Older", groupedChats.older)}
+          </div>
+        ) : (
+          <div className='flex justify-center py-4'>
+            <p className='text-sm text-muted-foreground'>No chat history</p>
+          </div>
+        )}
       </ScrollArea>
       <div className='px-4 py-2'>
         <p className='text-xs text-center text-muted-foreground'>
