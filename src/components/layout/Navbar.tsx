@@ -11,12 +11,20 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
+import { useState } from "react";
+
 interface NavbarProps {
   userId: string | null;
 }
 
 export default function Navbar({ userId }: NavbarProps) {
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+
+  // Function to close the sidebar sheet
+  const closeSidebar = () => {
+    setOpen(false);
+  };
 
   return (
     <div className='border-b'>
@@ -42,7 +50,10 @@ export default function Navbar({ userId }: NavbarProps) {
               <SignUpButton />
             </SignedOut>
             <SignedIn>
-              <Sheet>
+              <Sheet
+                open={open}
+                onOpenChange={setOpen}
+              >
                 <SheetTrigger asChild>
                   <Button
                     variant='ghost'
@@ -57,7 +68,10 @@ export default function Navbar({ userId }: NavbarProps) {
                   side='left'
                   className='p-0'
                 >
-                  <Sidebar userId={userId} />
+                  <Sidebar
+                    userId={userId}
+                    closeSidebar={closeSidebar}
+                  />
                 </SheetContent>
               </Sheet>
               <UserButton

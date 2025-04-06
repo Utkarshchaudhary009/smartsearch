@@ -312,10 +312,21 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
+  const handleRetry = (content: string) => {
+    // Clear error state
+    setApiError(null);
+
+    // Call handleSendMessage with the original message content
+    handleSendMessage(content);
+  };
+
   return (
     <div className='flex flex-1 flex-col h-[80vh] sm:h-[90%]'>
       <div className='flex-1 h-[30vh] sm:h-[40%] md:h-[50%] overflow-y-auto'>
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          onRetry={handleRetry}
+        />
         <div ref={messagesEndRef} />
       </div>
 

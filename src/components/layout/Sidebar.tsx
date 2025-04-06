@@ -100,7 +100,7 @@ export default function Sidebar({ userId, closeSidebar }: SidebarProps) {
     // Clear any cached messages for this chat (run any necessary cleanup)
     // This is important to ensure the chat UI fully resets
     window.localStorage.setItem("newChatRequested", "true");
-    
+
     // Close the sidebar on mobile if closeSidebar function is provided
     if (closeSidebar) {
       closeSidebar();
@@ -226,7 +226,7 @@ export default function Sidebar({ userId, closeSidebar }: SidebarProps) {
           >
             <Link href={`/?chatSlug=${slug}`}>
               <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
-              <span className='text-balanced max-w-[147px] overflow-x-scroll'>
+              <span className='text-balanced max-w-[150px] overflow-x-scroll'>
                 {slug === "default" ? "New Chat" : formatChatTitle(slug)}
               </span>
             </Link>

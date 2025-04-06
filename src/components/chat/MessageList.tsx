@@ -2,12 +2,24 @@ import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MessageListProps {
   messages: Message[];
+  onRetry?: (content: string) => void;
 }
 
-export default function MessageList({ messages }: MessageListProps) {
+export default function MessageList({ messages, onRetry }: MessageListProps) {
+  // Check if a message is an error message
+  const isErrorMessage = (content: string) => {
+    return (
+      content.includes("error") ||
+      content.includes("problem") ||
+      content.includes("failed")
+    );
+  };
+
   return (
     <div className='space-y-4 max-w-[800px] mx-auto p-4'>
       {messages.map((message, index) => (
@@ -36,7 +48,25 @@ export default function MessageList({ messages }: MessageListProps) {
                   <Skeleton className='h-4 w-[60%]' />
                 </div>
               ) : message.role === "agent" ? (
-                <MarkdownRenderer content={message.content} />
+                <div>
+                  <MarkdownRenderer content={message.content} />
+                  {onRetry &&
+                    isErrorMessage(message.content) &&
+                    index > 0 &&
+                    messages[index - 1].role === "user" && (
+                      <div className='mt-2 flex justify-end'>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          className='flex items-center gap-1 text-xs'
+                          onClick={() => onRetry(messages[index - 1].content)}
+                        >
+                          <RefreshCw className='h-3 w-3' />
+                          Retry
+                        </Button>
+                      </div>
+                    )}
+                </div>
               ) : (
                 <p className='text-sm whitespace-pre-wrap'>{message.content}</p>
               )}
