@@ -21,7 +21,6 @@ interface ChatInterfaceProps {
 const MAX_FREE_MESSAGES = 5;
 
 export default function ChatInterface({ userId }: ChatInterfaceProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const chatSlug = searchParams.get("chatSlug") || "default";
   const messagesEndRef = useRef<HTMLDivElement>(null);
