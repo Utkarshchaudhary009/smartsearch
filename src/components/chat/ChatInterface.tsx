@@ -44,6 +44,10 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     error: saveError,
   } = useSaveChatHistory();
 
+  // Add a state to track the current working slug
+  const [currentWorkingSlug, setCurrentWorkingSlug] =
+    useState<string>(chatSlug);
+
   // Debugging logs
   useEffect(() => {
     console.log("Debug - userId:", userId);
@@ -162,13 +166,15 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     );
 
     // Generate a new slug for the first query at default route
-    let currentChatSlug = chatSlug;
+    let slugToUse = currentWorkingSlug;
     if (isFirstQuery && chatSlug === "default") {
-      currentChatSlug = await createSlugFromQuery(content);
-      console.log("Debug - created new slug:", currentChatSlug);
+      // Generate the new slug but don't navigate yet
+      const newSlug = await createSlugFromQuery(content);
+      console.log("Debug - created new slug:", newSlug);
 
-      // Use replace instead of push to avoid back button returning to default chat
-      router.replace(`/?chatSlug=${currentChatSlug}`, { scroll: false });
+      // Update our working slug state
+      setCurrentWorkingSlug(newSlug);
+      slugToUse = newSlug;
       setIsFirstQuery(false);
     }
 
@@ -257,17 +263,25 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
       // Save to database if user is logged in
       if (userId) {
-        console.log("Debug - saving to database, chatSlug:", currentChatSlug);
+        console.log("Debug - saving to database, chatSlug:", slugToUse);
         saveChatHistory({
           clerkId: userId,
           query: content,
           response: agentResponse.content,
-          chatSlug: currentChatSlug,
+          chatSlug: slugToUse,
         });
 
         if (isSaveError) {
           console.error("Debug - Error saving chat:", saveError);
         }
+      }
+
+      // Now that the API call is complete, update the URL without triggering a navigation
+      if (slugToUse !== chatSlug) {
+        // Update the URL using history.replaceState
+        const newUrl = `/?chatSlug=${slugToUse}`;
+        window.history.replaceState({ path: newUrl }, "", newUrl);
+        console.log("Debug - Updated URL without navigation:", newUrl);
       }
 
       // Increment guest message count for non-logged users after successful response
