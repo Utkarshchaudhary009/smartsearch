@@ -36,6 +36,7 @@ import {
 
 interface SidebarProps {
   userId: string | null;
+  closeSidebar?: () => void;
 }
 
 // Helper function to format a chat slug into a more readable title
@@ -58,7 +59,7 @@ interface GroupedChats {
   older: string[];
 }
 
-export default function Sidebar({ userId }: SidebarProps) {
+export default function Sidebar({ userId, closeSidebar }: SidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentChatSlug = searchParams.get("chatSlug") || "default";
@@ -99,6 +100,11 @@ export default function Sidebar({ userId }: SidebarProps) {
     // Clear any cached messages for this chat (run any necessary cleanup)
     // This is important to ensure the chat UI fully resets
     window.localStorage.setItem("newChatRequested", "true");
+    
+    // Close the sidebar on mobile if closeSidebar function is provided
+    if (closeSidebar) {
+      closeSidebar();
+    }
   };
 
   const handleEditClick = (slug: string) => {
@@ -220,7 +226,7 @@ export default function Sidebar({ userId }: SidebarProps) {
           >
             <Link href={`/?chatSlug=${slug}`}>
               <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
-              <span className='text-balanced max-w-[140px] overflow-x-scroll'>
+              <span className='text-balanced max-w-[147px] overflow-x-scroll'>
                 {slug === "default" ? "New Chat" : formatChatTitle(slug)}
               </span>
             </Link>
