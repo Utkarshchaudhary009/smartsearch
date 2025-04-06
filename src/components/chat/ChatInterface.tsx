@@ -311,7 +311,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   };
 
   return (
-    <div className='flex flex-1 flex-col h-full'>
+    <div className='flex flex-1 flex-col h-[90%]'>
       <div className='flex-1 overflow-y-auto'>
         <MessageList messages={messages} />
         <div ref={messagesEndRef} />

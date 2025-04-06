@@ -21,12 +21,11 @@ export default function Navbar({ userId }: NavbarProps) {
   return (
     <div className='border-b'>
       <div className='flex h-16 items-center px-4'>
-
         <span className='font-bold sm:inline-block mr-6 flex items-center space-x-2'>
           SmartSearch
         </span>
 
-        <div className='ml-auto flex items-center space-x-2'>
+        <div className='ml-auto flex items-center space-x-1'>
           <Button
             variant='ghost'
             size='icon'
@@ -37,19 +36,12 @@ export default function Navbar({ userId }: NavbarProps) {
             <Moon className='absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
             <span className='sr-only'>Toggle theme</span>
           </Button>
-          <div className='flex justify-end items-center p-4 gap-4 h-16'>
+          <div className='flex justify-end items-center p-4 gap-2 h-16'>
             <SignedOut>
               <SignInButton />
               <SignUpButton />
             </SignedOut>
             <SignedIn>
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: "h-8 w-8",
-                  },
-                }}
-              />
               <Sheet>
                 <SheetTrigger asChild>
                   <Button
@@ -68,6 +60,13 @@ export default function Navbar({ userId }: NavbarProps) {
                   <Sidebar userId={userId} />
                 </SheetContent>
               </Sheet>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8",
+                  },
+                }}
+              />
             </SignedIn>
           </div>
         </div>

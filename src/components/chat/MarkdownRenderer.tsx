@@ -22,7 +22,7 @@ export default function MarkdownRenderer({
 }: MarkdownRendererProps) {
   return (
     <div
-      className={cn("prose prose-sm dark:prose-invert max-w-none", className)}
+      className={cn("prose prose-sm dark:prose-invert max-w-none text-wrap", className)}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -30,38 +30,38 @@ export default function MarkdownRenderer({
         components={{
           h1: ({ ...props }) => (
             <h1
-              className='text-2xl font-bold mt-6 mb-4'
+              className='text-2xl font-bold mt-6 mb-4 text-wrap'
               {...props}
             />
           ),
           h2: ({ ...props }) => (
             <h2
-              className='text-xl font-bold mt-5 mb-3'
+              className='text-xl font-bold mt-5 mb-3 text-wrap'
               {...props}
             />
           ),
           h3: ({ ...props }) => (
             <h3
-              className='text-lg font-bold mt-4 mb-2'
+              className='text-lg font-bold mt-4 mb-2 text-wrap'
               {...props}
             />
           ),
           h4: ({ ...props }) => (
             <h4
-              className='text-base font-bold mt-3 mb-1'
+              className='text-base font-bold mt-3 mb-1 text-wrap'
               {...props}
             />
           ),
           p: ({ ...props }) => (
             <p
-              className='mb-4'
+              className='mb-4 text-wrap'
               {...props}
             />
           ),
           a: ({ href, ...props }) => (
             <a
               href={href}
-              className='text-blue-500 hover:text-blue-700 underline'
+              className='text-blue-500 hover:text-blue-700 underline text-wrap'
               target='_blank'
               rel='noopener noreferrer'
               {...props}
@@ -81,19 +81,19 @@ export default function MarkdownRenderer({
           ),
           li: ({ ...props }) => (
             <li
-              className='mb-1'
+              className='mb-1 text-wrap'
               {...props}
             />
           ),
           blockquote: ({ ...props }) => (
             <blockquote
-              className='border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 italic mb-4'
+              className='border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 italic mb-4 text-wrap'
               {...props}
             />
           ),
           code: ({ ...props }) => (
             <code
-              className='block bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm overflow-x-auto my-4'
+              className='block text-wrap bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm overflow-x-auto my-4'
               {...props}
             />
           ),
