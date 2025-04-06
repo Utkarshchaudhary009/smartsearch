@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { NextRequest } from "next/server";
 
 // Define public routes that don't require authentication
 const publicRoutes = createRouteMatcher([
@@ -8,13 +9,13 @@ const publicRoutes = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
-  "/api/smartai(.*)"
+  "/api/smartai(.*)",
 ]);
 
 // Define admin routes
 const adminRoutes = createRouteMatcher(["/admin(.*)"]);
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (auth, req: NextRequest) => {
   const { userId } = await auth();
 
   // If the user is not authenticated and trying to access a protected route
@@ -59,9 +60,33 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  return NextResponse.next();
+  // Get the response from Clerk middleware
+  const response = NextResponse.next();
+
+  // Add CORS headers to enable Vercel Analytics
+  response.headers.set("Access-Control-Allow-Credentials", "true");
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+  );
+
+  // Special handling for OPTIONS requests (CORS preflight)
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 200,
+      headers: response.headers,
+    });
+  }
+
+  return response;
 });
 
+// Only run middleware on API routes where CORS might be an issue
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: "/((?!_next/static|_next/image|favicon.ico).*)",
 };
