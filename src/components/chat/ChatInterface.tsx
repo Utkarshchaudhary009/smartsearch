@@ -272,19 +272,19 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         setIsFirstQuery(false);
 
         // Update the URL using history.replaceState without triggering a navigation
-        const newUrl = `/?chatSlug=${newSlug}`;
-        window.history.replaceState({ path: newUrl }, "", newUrl);
-        console.log("Debug - Updated URL without navigation:", newUrl);
+        // const newUrl = `/?chatSlug=${newSlug}`;
+        // window.history.replaceState({ path: newUrl }, "", newUrl);
+        // console.log("Debug - Updated URL without navigation:", newUrl);
       }
 
       // Save to database if user is logged in
       if (userId) {
-        console.log("Debug - saving to database, chatSlug:", slugToUse);
+        console.log("Debug - saving to database, chatSlug:", slugToUse," $$ ",currentWorkingSlug);
         saveChatHistory({
           clerkId: userId,
           query: content,
           response: agentResponse.content,
-          chatSlug: slugToUse,
+          chatSlug: currentWorkingSlug,
         });
 
         if (isSaveError) {
