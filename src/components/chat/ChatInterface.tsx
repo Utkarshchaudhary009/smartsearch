@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { useChatHistory, useSaveChatHistory } from "@/lib/tanstack";
 import { Message } from "./types";
@@ -32,10 +32,14 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isFirstQuery, setIsFirstQuery] = useState(chatSlug === "default");
 
+  // Add a state to track the current working slug
+  const [currentWorkingSlug, setCurrentWorkingSlug] =
+    useState<string>(chatSlug);
+
   // Use TanStack hooks
   const { data: chatHistoryData, isLoading: isLoadingHistory } = useChatHistory(
     userId || "",
-    chatSlug
+    currentWorkingSlug // Use the working slug for data fetching
   );
   const {
     mutate: saveChatHistory,
@@ -43,16 +47,19 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     error: saveError,
   } = useSaveChatHistory();
 
-  // Add a state to track the current working slug
-  const [currentWorkingSlug, setCurrentWorkingSlug] =
-    useState<string>(chatSlug);
+  // Update currentWorkingSlug whenever chatSlug changes
+  useEffect(() => {
+    setCurrentWorkingSlug(chatSlug);
+    console.log("Debug - Updated working slug to match URL:", chatSlug);
+  }, [chatSlug]);
 
   // Debugging logs
   useEffect(() => {
     console.log("Debug - userId:", userId);
     console.log("Debug - guestMessageCount:", guestMessageCount);
     console.log("Debug - chatSlug:", chatSlug);
-  }, [userId, guestMessageCount, chatSlug]);
+    console.log("Debug - currentWorkingSlug:", currentWorkingSlug);
+  }, [userId, guestMessageCount, chatSlug, currentWorkingSlug]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -105,6 +112,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       console.log("Debug - New chat requested, resetting messages");
       setMessages([]);
       setIsFirstQuery(true);
+      setCurrentWorkingSlug("default"); // Reset the working slug for new chats
       window.localStorage.removeItem("newChatRequested");
     }
   }, [chatSlug, messages.length]);
@@ -121,7 +129,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         setIsFirstQuery(false);
       }
     }
-  }, [chatHistoryData, isLoadingHistory, userId, chatSlug]);
+  }, [chatHistoryData, isLoadingHistory, userId, currentWorkingSlug]);
 
   // Update isFirstQuery when chatSlug changes
   useEffect(() => {
@@ -161,12 +169,14 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       "isFirstQuery:",
       isFirstQuery,
       "chatSlug:",
-      chatSlug
+      chatSlug,
+      "currentWorkingSlug:",
+      currentWorkingSlug
     );
 
     // Generate a new slug for the first query at default route
     let slugToUse = currentWorkingSlug;
-    if (isFirstQuery && chatSlug === "default") {
+    if (isFirstQuery && currentWorkingSlug === "default") {
       // Generate the new slug but don't navigate yet
       const newSlug = await createSlugFromQuery(content);
       console.log("Debug - created new slug:", newSlug);
