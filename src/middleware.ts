@@ -8,7 +8,8 @@ const publicRoutes = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
-  "/api/smartai(.*)"
+  "/api(.*)",
+  "/settings(.*)"
 ]);
 
 // Define admin routes

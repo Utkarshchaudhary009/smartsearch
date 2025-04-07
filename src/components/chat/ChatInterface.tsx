@@ -311,7 +311,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           clerkId: userId,
           query: content,
           response: agentResponse.content,
-          chatSlug: currentWorkingSlug,
+          chatSlug: slugToUse,
         });
 
         if (isSaveError) {

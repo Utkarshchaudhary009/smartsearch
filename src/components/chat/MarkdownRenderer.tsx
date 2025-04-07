@@ -23,7 +23,7 @@ export default function MarkdownRenderer({
   return (
     <div
       className={cn(
-        "prose prose-sm dark:prose-invert [@media(max-width:768px)]:max-w-[80%] max-w-none text-wrap",
+        "prose prose-sm dark:prose-invert [@media(max-width:768px)]:max-w-[90%] max-w-none text-wrap",
         className
       )}
     >
