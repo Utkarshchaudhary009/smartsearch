@@ -4,11 +4,7 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
-import {
-  NetworkFirst,
-  StaleWhileRevalidate,
-  CacheFirst,
-} from "serwist";
+import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from "serwist";
 import { CacheableResponsePlugin } from "serwist";
 import { ExpirationPlugin } from "serwist";
 
@@ -79,7 +75,7 @@ const imageStrategy = new CacheFirst({
 // --- Routing ---
 
 // IMPORTANT: Replace with your actual Supabase project URL pattern
-const supabaseUrlPattern = ({ url }) => url.hostname.includes("supabase");
+const supabaseUrlPattern = ({ url }) => url.hostname.includes("supabase") || url.hostname.includes("clerk");
 // --- Serwist Initialization ---
 
 const serwist = new Serwist({
@@ -87,12 +83,23 @@ const serwist = new Serwist({
   skipWaiting: true, // Activate new service worker immediately
   clientsClaim: true, // Take control of clients immediately
   navigationPreload: true, // Enable navigation preload if supported
-  runtimeCaching: [...defaultCache, {
-    matcher:supabaseUrlPattern,
-    handler: supabaseApiStrategy,
-    method: "GET",
-  }], // Use default handlers provided by Serwist for common scenarios
+  runtimeCaching: [
+    ...defaultCache,
+    {
+      matcher: supabaseUrlPattern,
+      handler: supabaseApiStrategy,
+      method: "GET",
+    },
+  ], // Use default handlers provided by Serwist for common scenarios
   // Our custom registerRoute calls above will override or add to these.
+  fallbacks: {
+    entries: [
+      {
+        url: "/offline.html", // Route pattern for offline fallback
+        matcher:({request}) => request.destination === "document",
+      },
+    ],
+  },
 });
 
 serwist.addEventListeners();
