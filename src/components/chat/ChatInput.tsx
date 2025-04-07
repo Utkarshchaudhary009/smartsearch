@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -9,6 +8,8 @@ interface ChatInputProps {
   ButtonText?: string;
   TextareaPlaceholder?: string;
   isLoading?: boolean;
+  input: string;
+  setInput: (input: string) => void;
   disabled?: boolean;
 }
 
@@ -17,14 +18,16 @@ export default function ChatInput({
   ButtonText = "Send",
   TextareaPlaceholder = "Message SmartSearch",
   isLoading = false,
+  input,
+  setInput,
   disabled = false,
 }: ChatInputProps) {
-  const [input, setInput] = useState("");
+
 
   const handleSendMessage = () => {
     if (input.trim() && !isLoading && !disabled) {
       onSendMessage(input);
-      setInput("");
+      
     }
   };
 

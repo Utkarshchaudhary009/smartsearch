@@ -34,7 +34,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const [isFirstQuery, setIsFirstQuery] = useState(chatSlug === "default");
   const isOnline = useOnline();
   const [wasOnline, setWasOnline] = useState(isOnline);
-
+  const [input, setInput] = useState("");
   // Add a state to track the current working slug
   const [currentWorkingSlug, setCurrentWorkingSlug] =
     useState<string>(chatSlug);
@@ -268,7 +268,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
       const data = await response.json();
       console.log("Debug - API response:", data);
-
+      setInput("");
       // Remove the skeleton message
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
 
@@ -429,8 +429,10 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         <ChatInput
           onSendMessage={handleSendMessage}
           ButtonText={isOnline ? "Send" : "🦧"}
-          TextareaPlaceholder={isOnline ? "Message SmartSearch..." : "Please connect to the internet to send messages"}
+          TextareaPlaceholder={isOnline ? "Message SmartSearch..." : "Please connect to the internet."}
           isLoading={isLoading}
+          input={input}
+          setInput={setInput}
           disabled={
             (!userId && !isOnline && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
           }
