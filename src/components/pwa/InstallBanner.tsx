@@ -77,17 +77,17 @@ export function InstallBanner({
 
       // Check if running in standalone mode
       setIsStandalone(
-        window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: standalone)").matches || 
           (window.navigator as unknown as { standalone: boolean })
             .standalone === true
       );
 
       if (isStandalone) return; // Don't show if already standalone
-
+      
       // Detect iOS
       const ua = window.navigator.userAgent;
       const iosCheck =
-        /iPad|iPhone|iPod/.test(ua) ||
+        /iPad|iPhone|iPod/.test(ua) || 
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       setIsIOS(iosCheck);
 
@@ -101,7 +101,7 @@ export function InstallBanner({
         "beforeinstallprompt",
         handleBeforeInstallPrompt as unknown as EventListener
       );
-
+      
       // Reset on install
       const handleAppInstalled = () => {
         setInstallPrompt(null);

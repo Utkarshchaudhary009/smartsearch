@@ -43,6 +43,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const isOnline = useOnline();
   const [wasOnline, setWasOnline] = useState(isOnline);
   const [input, setInput] = useState("");
+  const [ifErrorInput, setIfErrorInput] = useState("");
   // Add a state to track the current working slug
   const [currentWorkingSlug, setCurrentWorkingSlug] =
     useState<string>(chatSlug);
@@ -179,37 +180,115 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     console.log("Processing queued messages:", queuedMessages.length);
     toast("Syncing offline messages...");
 
+    // Process one message at a time to avoid UI confusion
     for (const msg of queuedMessages) {
-      // Update status locally first (visual feedback)
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === msg.id ? { ...m, status: "sent", isLoading: true } : m
-        )
-      );
       try {
-        // Resend the message
-        await handleSendMessage(msg.content, true); // Pass flag to indicate it's a resend
-        // Update status on success
+        // Update status for visual feedback - original message stays visible
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === msg.id ? { ...m, status: "sent", isLoading: false } : m
-          )
+          prev.map((m) => (m.id === msg.id ? { ...m, status: "sent" } : m))
         );
+
+        setIsLoading(true);
+
+        // Call API directly without creating a new skeleton message
+        const chatHistory = messages
+          .filter((m) => m.status === "sent" && !m.isLoading && m.id !== msg.id)
+          .map((m) => ({
+            id: m.id || uuidv4(),
+            role: m.role === "agent" ? "assistant" : "user",
+            content: m.content,
+            timestamp: Date.parse(m.timestamp) || Date.now(),
+          }));
+
+        // Add the current message to the history
+        chatHistory.push({
+          id: msg.id || uuidv4(),
+          role: "user",
+          content: msg.content,
+          timestamp: Date.now(),
+        });
+
+        // Call API directly without handleSendMessage to avoid duplicate skeletons
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        const response = await fetch("/api/smartai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: msg.content,
+            chatHistory,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Add the agent response
+        const agentResponse: Message = {
+          id: uuidv4(),
+          role: "agent",
+          content: data.message || "Sorry, I couldn't generate a response.",
+          timestamp: new Date().toISOString(),
+          status: "sent",
+        };
+
+        setMessages((prev) => [...prev, agentResponse]);
+
+        // Handle slug generation and database saving if needed
+        let finalSlug = currentWorkingSlug;
+        if (userId && isFirstQuery && currentWorkingSlug === "default") {
+          const newSlug = await createSlugFromQuery(
+            `user:"${msg.content}" -> Ai:"${agentResponse.content}"`
+          );
+          setCurrentWorkingSlug(newSlug);
+          finalSlug = newSlug;
+          setIsFirstQuery(false);
+
+          // Update URL for logged-in users
+          router.push(`/?chatSlug=${newSlug}`, { scroll: false });
+        }
+
+        // Save to database for logged-in users
+        if (userId && finalSlug !== "default") {
+          saveChatHistory({
+            clerkId: userId,
+            query: msg.content,
+            response: agentResponse.content,
+            chatSlug: finalSlug,
+          });
+        }
+
+        // Update guest message count if needed
+        if (!userId) {
+          const newCount = guestMessageCount + 1;
+          setGuestMessageCount(newCount);
+          localStorage.setItem(GUEST_MSG_COUNT_KEY, newCount.toString());
+          if (newCount >= MAX_FREE_MESSAGES) {
+            setShowLoginPrompt(true);
+          }
+        }
       } catch (error) {
         console.error("Failed to send queued message:", msg.id, error);
         // Mark as failed on error
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === msg.id ? { ...m, status: "failed", isLoading: false } : m
-          )
+          prev.map((m) => (m.id === msg.id ? { ...m, status: "failed" } : m))
         );
         toast.error(
           `Failed to send message: ${msg.content.substring(0, 20)}...`
         );
+      } finally {
+        setIsLoading(false);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, userId, currentWorkingSlug, isFirstQuery]); // Dependencies might need adjustment
+  }, [messages, userId, currentWorkingSlug, isFirstQuery]);
 
   // Online status change handler
   useEffect(() => {
@@ -262,29 +341,28 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   // Reset chat state for new chat requests (logged-in users)
   useEffect(() => {
     const newChatRequested = window.localStorage.getItem("newChatRequested");
-    // Only reset for logged-in users initiating a new chat
-    if (userId && newChatRequested === "true") {
-      console.log(
-        "Debug - New chat requested by logged-in user, resetting messages"
-      );
+    // Reset for both logged-in users and guests when new chat is requested
+    if (newChatRequested === "true") {
+      console.log("Debug - New chat requested, resetting messages");
       setMessages([]);
       setIsFirstQuery(true);
       setShowTagline(true);
       setCurrentWorkingSlug("default"); // Explicitly set to default
-      localStorage.removeItem(OFFLINE_MESSAGES_KEY); // Ensure no stale messages
-      localStorage.removeItem(OFFLINE_INPUT_KEY); // Clear input
+
+      // Clear localStorage regardless of user status
+      localStorage.removeItem(OFFLINE_MESSAGES_KEY);
+      localStorage.removeItem(OFFLINE_INPUT_KEY);
       setInput("");
+
       window.localStorage.removeItem("newChatRequested");
-      // Ensure URL reflects default state if not already there
-      if (chatSlug !== "default") {
+
+      // Ensure URL reflects default state if not already there (for logged-in users)
+      if (userId && chatSlug !== "default") {
         router.replace("/", { scroll: false });
       }
-    } else if (newChatRequested === "true") {
-      // If guest clicks new chat, just remove the flag
-      window.localStorage.removeItem("newChatRequested");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]); // Depends only on userId to trigger check on login/logout or flag change
+  }, [userId, chatSlug]);
 
   // Load chat history from server (logged-in users, non-default slug)
   useEffect(() => {
@@ -335,6 +413,8 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     async (content: string, isResend: boolean = false) => {
       // Hide tagline
       if (showTagline) setShowTagline(false);
+      setIfErrorInput(input);
+      setInput("");
       setApiError(null);
 
       const messageId = uuidv4(); // Generate ID upfront for queuing
@@ -425,7 +505,6 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
         // Clear input only on successful online send
         if (!isResend) {
-          setInput("");
           localStorage.removeItem(OFFLINE_INPUT_KEY);
         }
 
@@ -484,6 +563,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         console.error("Error sending message:", error);
         setMessages((prev) => prev.filter((msg) => msg.id !== tempAgentId)); // Remove skeleton
 
+        setInput(ifErrorInput);
         const errorMessageContent =
           error instanceof DOMException && error.name === "AbortError"
             ? "Request timed out. Please try again."
@@ -558,7 +638,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
               alt='SmartSearch Logo'
               width={64}
               height={64}
-              className='mb-4'
+              className='mb-4 rounded-xl'
             />
             <h2 className='text-xl font-semibold text-muted-foreground'>
               Get Results, Not Links
