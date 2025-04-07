@@ -10,7 +10,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 // Augment the Window interface
 interface Window {
-  workbox?: any;
+  workbox?: string;
 }
 
 // Augment WindowEventMap
