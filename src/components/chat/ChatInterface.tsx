@@ -294,9 +294,9 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         setIsFirstQuery(false);
 
         // Update the URL using history.replaceState without triggering a navigation
-        // const newUrl = `/?chatSlug=${newSlug}`;
-        // window.history.replaceState({ path: newUrl }, "", newUrl);
-        // console.log("Debug - Updated URL without navigation:", newUrl);
+        const newUrl = `/?chatSlug=${newSlug}`;
+        window.history.replaceState({ path: newUrl }, "", newUrl);
+        console.log("Debug - Updated URL without navigation:", newUrl);
       }
 
       // Save to database if user is logged in
@@ -429,12 +429,17 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         <ChatInput
           onSendMessage={handleSendMessage}
           ButtonText={isOnline ? "Send" : "🦧"}
-          TextareaPlaceholder={isOnline ? "Message SmartSearch..." : "Please connect to the internet."}
+          TextareaPlaceholder={
+            isOnline
+              ? "Message SmartSearch..."
+              : "Please connect to the internet."
+          }
           isLoading={isLoading}
           input={input}
           setInput={setInput}
           disabled={
-            (!userId && !isOnline && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
+            (!userId && !isOnline && guestMessageCount >= MAX_FREE_MESSAGES) ||
+            !!apiError
           }
         />
       </div>
