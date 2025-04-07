@@ -42,3 +42,6 @@ next-env.d.ts
 
 Action had been taken.md
 .cursor/rules/rulebook.mdc
+
+public/sw*
+public/sw-worker*
