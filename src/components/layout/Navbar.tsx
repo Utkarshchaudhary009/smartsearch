@@ -11,7 +11,8 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AddToHomeScreenButton } from "@/components/pwa";
 
 interface NavbarProps {
   userId: string | null;
@@ -20,6 +21,12 @@ interface NavbarProps {
 export default function Navbar({ userId }: NavbarProps) {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Mount check to avoid hydration issues with PWA detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Function to close the sidebar sheet
   const closeSidebar = () => {
@@ -33,7 +40,9 @@ export default function Navbar({ userId }: NavbarProps) {
           SmartSearch
         </span>
 
-        <div className='ml-auto flex items-center '>
+        <div className='ml-auto flex items-center space-x-2'>
+          {mounted && <AddToHomeScreenButton />}
+
           <Button
             variant='ghost'
             size='icon'

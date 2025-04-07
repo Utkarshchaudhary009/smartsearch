@@ -5,6 +5,8 @@ import { auth } from "@clerk/nextjs/server";
 import { ClerkProvider } from "@clerk/nextjs";
 import { TanstackProvider } from "@/lib/tanstack";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { PWAProvider } from "@/components/providers/pwa-provider";
+import { InstallBanner } from "@/components/pwa";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import { Analytics } from "@vercel/analytics/react";
@@ -15,6 +17,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Smart Search Chat",
   description: "AI-powered chat interface with smart search capabilities",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SmartSearch",
+  },
+  themeColor: "#ffffff",
 };
 
 export default async function RootLayout({
@@ -39,6 +48,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <TanstackProvider>
+              <PWAProvider />
               <div className='flex h-screen flex-col'>
                 <Navbar userId={userId} />
                 <div className='flex flex-1 overflow-hidden'>
@@ -53,6 +63,10 @@ export default async function RootLayout({
                   </main>
                 </div>
               </div>
+              <InstallBanner
+                delay={5000}
+                showOnce={true}
+              />
             </TanstackProvider>
             <Toaster />
           </ThemeProvider>
