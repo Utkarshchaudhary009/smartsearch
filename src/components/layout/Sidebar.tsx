@@ -223,15 +223,15 @@ export default function Sidebar({ userId, closeSidebar }: SidebarProps) {
             variant={currentChatSlug === slug ? "secondary" : "ghost"}
             className='w-full justify-start pr-10'
             asChild
+            onClick={() => {
+              if (currentChatSlug !== slug && closeSidebar) {
+                closeSidebar();
+              }
+            }}
           >
             <Link href={`/?chatSlug=${slug}`}>
               <MessageSquare className='mr-2 h-4 w-4 flex-shrink-0' />
-              <span
-                className='text-balanced max-w-[200px] overflow-x-scroll'
-                onClick={() => {
-                  closeSidebar?.();
-                }}
-              >
+              <span className='text-balanced max-w-[200px] overflow-x-scroll'>
                 {slug === "default" ? "New Chat" : formatChatTitle(slug)}
               </span>
             </Link>

@@ -1,23 +1,72 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import { UniversalInstallButton } from "./UniversalInstallButton";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { IOSInstallInstructions } from "./IOSInstallInstructions";
 
 interface InstallBannerProps {
-  delay?: number; // Delay in milliseconds before showing the banner
-  showOnce?: boolean; // Whether to show the banner only once per session
+  delay?: number; // Delay in milliseconds before showing the toast
+  showOnce?: boolean; // Whether to show the toast only once per session
+  duration?: number; // Duration the toast stays visible (ms)
 }
 
 export function InstallBanner({
   delay = 3500,
   showOnce = true,
+  duration = 8000, // Default 8 seconds
 }: InstallBannerProps) {
-  const [visible, setVisible] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [toastId, setToastId] = useState<string | number | undefined>(
+    undefined
+  );
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+
+  const handleInstallClick = useCallback(async () => {
+    if (isIOS) {
+      setShowIOSInstructions(true); // Show separate instructions for iOS
+      if (toastId) toast.dismiss(toastId);
+      return;
+    }
+
+    if (!installPrompt) return;
+
+    try {
+      // Show the install prompt first
+      await installPrompt.prompt();
+      // Then wait for the user's choice
+      const { outcome } = await installPrompt.userChoice;
+
+      if (outcome === "accepted") {
+        console.log("User accepted the install prompt");
+        setInstallPrompt(null); // Clear the prompt
+        if (toastId) toast.dismiss(toastId); // Dismiss the toast
+        if (showOnce) {
+          sessionStorage.setItem("installBannerDismissed", "true");
+        }
+      } else {
+        console.log("User dismissed the install prompt");
+        if (showOnce) {
+          sessionStorage.setItem("installBannerDismissed", "true"); // Also dismiss if rejected but showOnce is true
+        }
+      }
+    } catch (err) {
+      console.error("Error showing install prompt:", err);
+    } finally {
+      // Dismiss the toast regardless of outcome if not already dismissed
+      if (toastId) toast.dismiss(toastId);
+    }
+  }, [installPrompt, isIOS, showOnce, toastId]);
+
+  const handleLaterClick = useCallback(() => {
+    if (showOnce) {
+      sessionStorage.setItem("installBannerDismissed", "true");
+    }
+    if (toastId) toast.dismiss(toastId);
+  }, [showOnce, toastId]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -28,103 +77,105 @@ export function InstallBanner({
 
       // Check if running in standalone mode
       setIsStandalone(
-        window.matchMedia("(display-mode: standalone)").matches || 
-        (window.navigator as unknown as { standalone: boolean }).standalone === true
-      );
-      
-      // Detect iOS
-      const ua = window.navigator.userAgent;
-      setIsIOS(
-        /iPad|iPhone|iPod/.test(ua) || 
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+        window.matchMedia("(display-mode: standalone)").matches ||
+          (window.navigator as unknown as { standalone: boolean })
+            .standalone === true
       );
 
-      // Listen for the beforeinstallprompt event
+      if (isStandalone) return; // Don't show if already standalone
+
+      // Detect iOS
+      const ua = window.navigator.userAgent;
+      const iosCheck =
+        /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      setIsIOS(iosCheck);
+
+      // Listen for the beforeinstallprompt event (non-iOS)
       const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
         e.preventDefault();
         setInstallPrompt(e);
       };
 
-      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt as unknown as EventListener);
-      
-      // Show after delay
-      const timer = setTimeout(() => {
-        setVisible(true);
-      }, delay);
-      
+      window.addEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt as unknown as EventListener
+      );
+
       // Reset on install
-      window.addEventListener("appinstalled", () => {
+      const handleAppInstalled = () => {
         setInstallPrompt(null);
-        setVisible(false);
         if (showOnce) {
           sessionStorage.setItem("installBannerDismissed", "true");
         }
-      });
+        if (toastId) toast.dismiss(toastId);
+      };
+      window.addEventListener("appinstalled", handleAppInstalled);
+
+      // Show toast after delay if installable
+      const timer = setTimeout(() => {
+        if (installPrompt || iosCheck) {
+          // Check if installable (Android/Desktop or iOS)
+          const id = toast("Install SmartSearch App", {
+            description: isIOS
+              ? 'Tap the share button and then "Add to Home Screen".'
+              : "Add to your home screen for a better experience.",
+            duration: duration,
+            action: !isIOS ? (
+              <Button
+                size='sm'
+                onClick={handleInstallClick}
+              >
+                Install
+              </Button>
+            ) : undefined, // No direct install button for iOS
+            cancel: (
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleLaterClick}
+              >
+                Later
+              </Button>
+            ),
+            onDismiss: () => {
+              if (showOnce) {
+                // Mark as dismissed if toast auto-dismisses or is manually closed
+                sessionStorage.setItem("installBannerDismissed", "true");
+              }
+            },
+          });
+          setToastId(id);
+        }
+      }, delay);
 
       return () => {
         clearTimeout(timer);
-            window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt as unknown as EventListener);
+        window.removeEventListener(
+          "beforeinstallprompt",
+          handleBeforeInstallPrompt as unknown as EventListener
+        );
+        window.removeEventListener("appinstalled", handleAppInstalled);
+        // Ensure toast is dismissed on unmount if it exists
+        if (toastId) toast.dismiss(toastId);
       };
     }
-  }, [delay, showOnce]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    delay,
+    showOnce,
+    duration,
+    installPrompt,
+    isStandalone,
+    handleInstallClick,
+    handleLaterClick,
+  ]); // Added dependencies
 
-  const handleDismiss = () => {
-    setVisible(false);
-    setDismissed(true);
-    
-    if (showOnce) {
-      sessionStorage.setItem("installBannerDismissed", "true");
-    }
-  };
-
-  // Don't show if already in standalone mode, dismissed, or not installable on non-iOS
-  if (isStandalone || dismissed || (!installPrompt && !isIOS) || !visible) {
-    return null;
-  }
-
-  return (
-    <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-900 p-4 shadow-lg border-t border-gray-200 dark:border-gray-800 z-50">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="hidden sm:block">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-primary"
-              >
-                <path d="M21 13v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1Z" />
-                <path d="M7 13v-6a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v6" />
-              </svg>
-            </div>
-          </div>
-          <div>
-            <h3 className="font-medium text-lg">Install SmartSearch App</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {isIOS
-                ? "Install our app on your iPhone for a better experience"
-                : "Add to your home screen for a better experience . "}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <UniversalInstallButton className="hidden sm:inline-flex" />
-          <button
-            onClick={handleDismiss}
-            className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            aria-label="Dismiss"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-} 
+  // Render iOS instructions modal if needed
+  return isIOS ? (
+    <IOSInstallInstructions
+      isOpen={showIOSInstructions}
+      onClose={() => setShowIOSInstructions(false)}
+    />
+  ) : null; // Don't render anything else directly
+}

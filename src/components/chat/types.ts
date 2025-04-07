@@ -4,6 +4,7 @@ export interface Message {
   timestamp: string;
   id?: string;
   isLoading?: boolean;
+  status?: "sent" | "queued" | "failed";
 }
 
 export interface ChatMessage {

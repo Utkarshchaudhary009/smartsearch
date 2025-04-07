@@ -22,12 +22,9 @@ export default function ChatInput({
   setInput,
   disabled = false,
 }: ChatInputProps) {
-
-
   const handleSendMessage = () => {
     if (input.trim() && !isLoading && !disabled) {
       onSendMessage(input);
-      
     }
   };
 

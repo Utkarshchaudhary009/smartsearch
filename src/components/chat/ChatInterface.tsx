@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { useChatHistory, useSaveChatHistory } from "@/lib/tanstack";
 import { Message } from "./types";
@@ -14,6 +14,13 @@ import { SignInButton } from "@clerk/nextjs";
 import { generateSlugTimestamp } from "@/lib/dateUtils";
 import { useOnline } from "@/hooks/useOnline";
 import { toast } from "sonner";
+import Image from "next/image";
+
+// localStorage keys
+const GUEST_MSG_COUNT_KEY = "guestMessageCount";
+const OFFLINE_MESSAGES_KEY = "offlineMessages";
+const OFFLINE_INPUT_KEY = "offlineInput";
+
 interface ChatInterfaceProps {
   userId: string | null;
 }
@@ -23,6 +30,7 @@ const MAX_FREE_MESSAGES = 5;
 
 export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const chatSlug = searchParams.get("chatSlug") || "default";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +46,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   // Add a state to track the current working slug
   const [currentWorkingSlug, setCurrentWorkingSlug] =
     useState<string>(chatSlug);
+  const [showTagline, setShowTagline] = useState(false);
 
   // Use TanStack hooks
   const { data: chatHistoryData, isLoading: isLoadingHistory } = useChatHistory(
@@ -50,11 +59,86 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     error: saveError,
   } = useSaveChatHistory();
 
-  // Update currentWorkingSlug whenever chatSlug changes
+  // --- Persistence Logic ---
+
+  // Save messages to localStorage
   useEffect(() => {
-    setCurrentWorkingSlug(chatSlug);
-    console.log("Debug - Updated working slug to match URL:", chatSlug);
-  }, [chatSlug]);
+    try {
+      // Save only non-history messages or if guest
+      if (!userId || chatSlug === "default") {
+        const messagesToSave = messages.filter((m) => !m.isLoading); // Don't save loading skeletons
+        localStorage.setItem(
+          OFFLINE_MESSAGES_KEY,
+          JSON.stringify(messagesToSave)
+        );
+      }
+    } catch (error) {
+      console.error("Error saving messages to localStorage:", error);
+    }
+  }, [messages, userId, chatSlug]);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedMessages = localStorage.getItem(OFFLINE_MESSAGES_KEY);
+      if (storedMessages && (!userId || chatSlug === "default")) {
+        // Load only for guests or new chats
+        const parsedMessages: Message[] = JSON.parse(storedMessages);
+        // Only set if messages state is currently empty to avoid overwriting history/live updates
+        if (messages.length === 0) {
+          setMessages(parsedMessages);
+          // If loaded messages exist, hide tagline
+          if (parsedMessages.length > 0) setShowTagline(false);
+        }
+      }
+      // Load saved input
+      const storedInput = localStorage.getItem(OFFLINE_INPUT_KEY);
+      if (storedInput) {
+        setInput(storedInput);
+      }
+    } catch (error) {
+      console.error("Error loading state from localStorage:", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
+
+  // Save input to localStorage as user types
+  useEffect(() => {
+    try {
+      localStorage.setItem(OFFLINE_INPUT_KEY, input);
+    } catch (error) {
+      console.error("Error saving input to localStorage:", error);
+    }
+  }, [input]);
+
+  // --- End Persistence Logic ---
+
+  // Update currentWorkingSlug whenever chatSlug changes, handle guests
+  useEffect(() => {
+    if (userId) {
+      // If user is logged in, sync with URL slug
+      setCurrentWorkingSlug(chatSlug);
+      console.log("Debug - Updated working slug to match URL:", chatSlug);
+      // Clear guest messages if navigating to a saved chat
+      if (chatSlug !== "default") {
+        localStorage.removeItem(OFFLINE_MESSAGES_KEY);
+        localStorage.removeItem(OFFLINE_INPUT_KEY); // Clear input too
+        // If messages were loaded from guest storage, clear them
+        if (messages.some((m) => m.status === "queued")) {
+          setMessages([]);
+        }
+      }
+    } else {
+      // Force guest to default context and clear potentially loaded slug messages
+      setCurrentWorkingSlug("default");
+      setMessages((prev) => prev.filter((m) => m.status === "queued")); // Keep only queued
+      if (chatSlug !== "default") {
+        // If guest somehow landed on slug URL, redirect to default cleanly
+        router.replace("/", { scroll: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatSlug, userId]); // Removed router dependency, replace handles it
 
   // Debugging logs
   useEffect(() => {
@@ -71,90 +155,166 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   }, [messages]);
 
-  // Reset guest message count when user logs in
+  // Reset guest message count & clear offline data when user logs in
   useEffect(() => {
     if (userId) {
       setGuestMessageCount(0);
-      localStorage.removeItem("guestMessageCount");
+      localStorage.removeItem(GUEST_MSG_COUNT_KEY);
+      localStorage.removeItem(OFFLINE_MESSAGES_KEY); // Clear guest offline messages
+      localStorage.removeItem(OFFLINE_INPUT_KEY); // Clear offline input
+      setInput(""); // Clear current input state
       setShowLoginPrompt(false);
+      // Fetch history for the potentially new slug user landed on
+      // queryClient.invalidateQueries(chatKeys.history(userId, currentWorkingSlug)); // Optional: Force history refetch
     }
   }, [userId]);
+
+  // Process queued messages when coming online
+  const processQueuedMessages = useCallback(async () => {
+    const queuedMessages = messages.filter(
+      (msg) => msg.status === "queued" && msg.role === "user"
+    );
+    if (queuedMessages.length === 0) return;
+
+    console.log("Processing queued messages:", queuedMessages.length);
+    toast("Syncing offline messages...");
+
+    for (const msg of queuedMessages) {
+      // Update status locally first (visual feedback)
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msg.id ? { ...m, status: "sent", isLoading: true } : m
+        )
+      );
+      try {
+        // Resend the message
+        await handleSendMessage(msg.content, true); // Pass flag to indicate it's a resend
+        // Update status on success
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msg.id ? { ...m, status: "sent", isLoading: false } : m
+          )
+        );
+      } catch (error) {
+        console.error("Failed to send queued message:", msg.id, error);
+        // Mark as failed on error
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msg.id ? { ...m, status: "failed", isLoading: false } : m
+          )
+        );
+        toast.error(
+          `Failed to send message: ${msg.content.substring(0, 20)}...`
+        );
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, userId, currentWorkingSlug, isFirstQuery]); // Dependencies might need adjustment
+
   // Online status change handler
   useEffect(() => {
     if (isOnline !== wasOnline) {
       toast(isOnline ? "Back Online" : "Offline", {
         description: isOnline
           ? "Connection restored. You can continue chatting."
-          : "You're offline. Messages will send when connected.",
+          : "You're offline. Messages will be queued.", // Updated description
       });
       setWasOnline(isOnline);
+      if (isOnline) {
+        processQueuedMessages();
+      }
     }
-  }, [isOnline, wasOnline]);
-  // Load guest message count from localStorage on component mount
+  }, [isOnline, wasOnline, processQueuedMessages]);
 
+  // Load guest message count from localStorage on component mount
   useEffect(() => {
     if (!userId) {
       try {
-        const storedCount = localStorage.getItem("guestMessageCount");
-        console.log("Debug - storedCount from localStorage:", storedCount);
+        const storedCount = localStorage.getItem(GUEST_MSG_COUNT_KEY);
         if (storedCount) {
           const count = parseInt(storedCount, 10);
           setGuestMessageCount(count);
           if (count >= MAX_FREE_MESSAGES) {
             setShowLoginPrompt(true);
           }
-        } else {
-          // Initialize with 0 if not set
-          localStorage.setItem("guestMessageCount", "0");
         }
       } catch (error) {
-        console.error("Error accessing localStorage:", error);
-        // Default to allowing chats if localStorage fails
+        console.error("Error accessing localStorage for guest count:", error);
         setGuestMessageCount(0);
       }
     }
   }, [userId]);
 
-  // Reset chat when new chat is requested or chatSlug changes to default
+  // Show tagline based on state
   useEffect(() => {
-    // Handle new chat request from sidebar
-    const newChatRequested = window.localStorage.getItem("newChatRequested");
+    // Show tagline if it's the default chat, no messages are present, and history isn't loading
     if (
-      newChatRequested === "true" ||
-      (chatSlug === "default" && messages.length > 0)
+      currentWorkingSlug === "default" &&
+      messages.length === 0 &&
+      !isLoadingHistory
     ) {
-      console.log("Debug - New chat requested, resetting messages");
+      setShowTagline(true);
+    } else {
+      setShowTagline(false);
+    }
+  }, [currentWorkingSlug, messages.length, isLoadingHistory]);
+
+  // Reset chat state for new chat requests (logged-in users)
+  useEffect(() => {
+    const newChatRequested = window.localStorage.getItem("newChatRequested");
+    // Only reset for logged-in users initiating a new chat
+    if (userId && newChatRequested === "true") {
+      console.log(
+        "Debug - New chat requested by logged-in user, resetting messages"
+      );
       setMessages([]);
       setIsFirstQuery(true);
-      setCurrentWorkingSlug("default"); // Reset the working slug for new chats
+      setShowTagline(true);
+      setCurrentWorkingSlug("default"); // Explicitly set to default
+      localStorage.removeItem(OFFLINE_MESSAGES_KEY); // Ensure no stale messages
+      localStorage.removeItem(OFFLINE_INPUT_KEY); // Clear input
+      setInput("");
+      window.localStorage.removeItem("newChatRequested");
+      // Ensure URL reflects default state if not already there
+      if (chatSlug !== "default") {
+        router.replace("/", { scroll: false });
+      }
+    } else if (newChatRequested === "true") {
+      // If guest clicks new chat, just remove the flag
       window.localStorage.removeItem("newChatRequested");
     }
-  }, [chatSlug, messages.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Depends only on userId to trigger check on login/logout or flag change
 
-  // Load chat history from the server when component mounts or chatSlug changes
+  // Load chat history from server (logged-in users, non-default slug)
   useEffect(() => {
-    if (chatHistoryData && !isLoadingHistory && userId) {
-      console.log("Debug - chatHistoryData:", chatHistoryData);
+    if (
+      chatHistoryData &&
+      !isLoadingHistory &&
+      userId &&
+      currentWorkingSlug !== "default"
+    ) {
+      console.log("Debug - Loading history for:", currentWorkingSlug);
       const formattedMessages = formatChatMessages(chatHistoryData);
-
-      // Reset default message if we have history
-      if (formattedMessages.length > 0) {
+      // Check if component is still mounted and slug hasn't changed back to default
+      if (formattedMessages.length > 0 && currentWorkingSlug === chatSlug) {
         setMessages(formattedMessages);
         setIsFirstQuery(false);
+        setShowTagline(false);
+        // Clear any potential guest/offline messages now that history is loaded
+        localStorage.removeItem(OFFLINE_MESSAGES_KEY);
+        localStorage.removeItem(OFFLINE_INPUT_KEY);
       }
     }
-  }, [chatHistoryData, isLoadingHistory, userId, currentWorkingSlug]);
+    // Ensure history load is tied to the specific slug from the URL
+  }, [chatHistoryData, isLoadingHistory, userId, currentWorkingSlug, chatSlug]);
 
-  // Update isFirstQuery when chatSlug changes
+  // Update isFirstQuery based on currentWorkingSlug
   useEffect(() => {
-    if (chatSlug === "default") {
-      setIsFirstQuery(true);
-    } else {
-      setIsFirstQuery(false);
-    }
-  }, [chatSlug]);
+    setIsFirstQuery(currentWorkingSlug === "default");
+  }, [currentWorkingSlug]);
 
-  // Helper to create a chat slug from a query
+  // Helper to create a chat slug (only used for logged-in users)
   const createSlugFromQuery = async (query: string): Promise<string> => {
     // Create a slug from the first 5 words (or fewer if there are less than 5)
     const slug = await ChatSlugGenerator(query);
@@ -171,214 +331,251 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     return `${baseSlug}-${timestamp}`;
   };
 
-  const handleSendMessage = async (content: string) => {
-    // Clear any previous API errors
-    setApiError(null);
+  const handleSendMessage = useCallback(
+    async (content: string, isResend: boolean = false) => {
+      // Hide tagline
+      if (showTagline) setShowTagline(false);
+      setApiError(null);
 
-    if (!isOnline) {
-      toast("Offline", {
-        description: "Message queued. Will send when online.",
-      });
-      return;
-    }
-    console.log(
-      "Debug - handleSendMessage start, userId:",
-      userId,
-      "guestMessageCount:",
-      guestMessageCount,
-      "isFirstQuery:",
-      isFirstQuery,
-      "chatSlug:",
-      chatSlug,
-      "currentWorkingSlug:",
-      currentWorkingSlug
-    );
+      const messageId = uuidv4(); // Generate ID upfront for queuing
 
-    // We'll use the current working slug throughout and only generate a new one just before saving
-    let slugToUse = currentWorkingSlug;
-
-    // Check if non-logged user has reached message limit
-    if (!userId) {
-      if (guestMessageCount >= MAX_FREE_MESSAGES) {
-        console.log("Debug - guest reached message limit");
-        setShowLoginPrompt(true);
+      // --- Offline Handling ---
+      if (!isOnline) {
+        if (!isResend) {
+          toast("Offline", {
+            description: "Message queued. Will send when online.",
+          });
+          const userMessage: Message = {
+            id: messageId,
+            role: "user",
+            content,
+            timestamp: new Date().toISOString(),
+            status: "queued",
+          };
+          setMessages((prev) => [...prev, userMessage]);
+          setInput(""); // Clear input after queuing
+          localStorage.removeItem(OFFLINE_INPUT_KEY); // Clear saved input
+        }
+        // Don't proceed with API call if offline
         return;
       }
-    }
+      // --- End Offline Handling ---
 
-    // Add user message to state
-    const userMessage: Message = {
-      role: "user",
-      content,
-      timestamp: "",
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-
-    // Add skeleton message temporarily while loading
-    const tempId = uuidv4();
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "agent",
-        content: "",
-        timestamp: "",
-        id: tempId,
-        isLoading: true,
-      },
-    ]);
-
-    try {
-      // Create a chat history array for the API
-      const chatHistory = messages
-        .filter((msg) => !msg.isLoading) // Filter out any skeleton messages
-        .map((msg) => ({
-          id: uuidv4(),
-          role: msg.role === "agent" ? "assistant" : "user",
-          content: msg.content,
-          timestamp: Date.now(),
-        }));
-
-      console.log("Debug - sending API request with chatHistory:", chatHistory);
-
-      // Call the smartai API with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-      const response = await fetch("/api/smartai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: content,
-          chatHistory,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      console.log("Debug - response:", response);
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error("API error:", response.status, errorData);
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Debug - API response:", data);
-      setInput("");
-      // Remove the skeleton message
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-
-      const agentResponse: Message = {
-        role: "agent",
-        content: data.message || "Sorry, I couldn't generate a response.",
-        timestamp: "",
-      };
-
-      setMessages((prev) => [...prev, agentResponse]);
-
-      // Now generate a new slug just before saving if needed
-      if (isFirstQuery && currentWorkingSlug === "default") {
-        // Generate the new slug just before saving
-        const newSlug = await createSlugFromQuery(
-          `user:"${content}" -> Ai:"${data.message}"`
-        );
-        console.log("Debug - created new slug for saving:", newSlug);
-
-        // Update our working slug state
-        setCurrentWorkingSlug(newSlug);
-        slugToUse = newSlug;
-        setIsFirstQuery(false);
-
-        // Update the URL using history.replaceState without triggering a navigation
-        const newUrl = `/?chatSlug=${newSlug}`;
-        window.history.replaceState({ path: newUrl }, "", newUrl);
-        console.log("Debug - Updated URL without navigation:", newUrl);
-      }
-
-      // Save to database if user is logged in
-      if (userId) {
-        console.log(
-          "Debug - saving to database, chatSlug:",
-          slugToUse,
-          " $$ ",
-          currentWorkingSlug
-        );
-        saveChatHistory({
-          clerkId: userId,
-          query: content,
-          response: agentResponse.content,
-          chatSlug: slugToUse,
-        });
-
-        if (isSaveError) {
-          console.error("Debug - Error saving chat:", saveError);
-        }
-      }
-
-      // Increment guest message count for non-logged users after successful response
+      // Guest limit check
       if (!userId) {
-        // Increment guest message count
-        const newCount = guestMessageCount + 1;
-        console.log("Debug - incrementing guest count to:", newCount);
-        setGuestMessageCount(newCount);
-        localStorage.setItem("guestMessageCount", newCount.toString());
-
-        // Show login prompt when reaching the limit
-        if (newCount >= MAX_FREE_MESSAGES) {
+        if (guestMessageCount >= MAX_FREE_MESSAGES) {
           setShowLoginPrompt(true);
+          return;
         }
       }
-    } catch (error) {
-      console.error("Error sending message:", error);
 
-      // Remove the skeleton message
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-
-      // Set API error state
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setApiError("Request timed out. Please try again.");
-      } else {
-        setApiError(
-          "There was a problem connecting to the AI service. Please try again later."
-        );
+      // Add user message to state (if not a resend already added)
+      if (!isResend) {
+        const userMessage: Message = {
+          id: messageId,
+          role: "user",
+          content,
+          timestamp: new Date().toISOString(),
+          status: "sent", // Assume sent initially when online
+        };
+        setMessages((prev) => [...prev, userMessage]);
       }
 
-      // Add error message
-      const errorMessage: Message = {
-        role: "agent",
-        content:
-          "Sorry, there was an error processing your request. Our team has been notified of the issue. Please try again later.",
-        timestamp: "",
-      };
+      setIsLoading(true);
+      const tempAgentId = uuidv4();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "agent",
+          content: "",
+          timestamp: "",
+          id: tempAgentId,
+          isLoading: true,
+        },
+      ]);
 
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        // Prepare history: include only 'sent' messages, exclude loading/queued
+        const chatHistory = messages
+          .filter((msg) => msg.status === "sent" && !msg.isLoading)
+          .map((msg) => ({
+            id: msg.id || uuidv4(),
+            role: msg.role === "agent" ? "assistant" : "user",
+            content: msg.content,
+            timestamp: Date.parse(msg.timestamp) || Date.now(),
+          }));
+
+        // Call API
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const response = await fetch("/api/smartai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: content, chatHistory }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`API error: ${response.status} - ${errorData}`);
+        }
+
+        const data = await response.json();
+
+        // Clear input only on successful online send
+        if (!isResend) {
+          setInput("");
+          localStorage.removeItem(OFFLINE_INPUT_KEY);
+        }
+
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempAgentId)); // Remove skeleton
+
+        const agentResponse: Message = {
+          role: "agent",
+          content: data.message || "Sorry, I couldn't generate a response.",
+          timestamp: new Date().toISOString(),
+          status: "sent",
+        };
+        setMessages((prev) => [...prev, agentResponse]);
+
+        // --- Post-send logic (Slug generation & Saving) ---
+
+        let finalSlug = currentWorkingSlug;
+
+        // Generate slug only for logged-in users on the first message of a default chat
+        if (userId && isFirstQuery && currentWorkingSlug === "default") {
+          const newSlug = await createSlugFromQuery(
+            `user:"${content}" -> Ai:"${agentResponse.content}"`
+          );
+          console.log("Debug - created new slug:", newSlug);
+          setCurrentWorkingSlug(newSlug);
+          finalSlug = newSlug;
+          setIsFirstQuery(false);
+
+          // Update URL immediately for logged-in user
+          router.push(`/?chatSlug=${newSlug}`, { scroll: false });
+        }
+
+        // Save to database only if logged in and slug is determined
+        if (userId && finalSlug !== "default") {
+          console.log("Debug - saving to database, chatSlug:", finalSlug);
+          saveChatHistory({
+            clerkId: userId,
+            query: content,
+            response: agentResponse.content,
+            chatSlug: finalSlug,
+          });
+          if (isSaveError) {
+            console.error("Debug - Error saving chat:", saveError);
+            // Optionally revert message status or show error toast
+          }
+        } else if (!userId) {
+          // Increment guest count only after successful response
+          const newCount = guestMessageCount + 1;
+          setGuestMessageCount(newCount);
+          localStorage.setItem(GUEST_MSG_COUNT_KEY, newCount.toString());
+          if (newCount >= MAX_FREE_MESSAGES) {
+            setShowLoginPrompt(true);
+          }
+        }
+        // --- End Post-send logic ---
+      } catch (error: unknown) {
+        console.error("Error sending message:", error);
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempAgentId)); // Remove skeleton
+
+        const errorMessageContent =
+          error instanceof DOMException && error.name === "AbortError"
+            ? "Request timed out. Please try again."
+            : "There was a problem connecting to the AI service. Please try again later.";
+        setApiError(errorMessageContent);
+
+        const errorMessage: Message = {
+          role: "agent",
+          content:
+            "Sorry, there was an error processing your request. Our team has been notified.",
+          timestamp: new Date().toISOString(),
+          status: "failed", // Mark agent response as failed too
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+
+        // Mark the original user message as failed if it was an online attempt
+        if (!isResend && isOnline) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId ? { ...m, status: "failed" } : m
+            )
+          );
+        }
+      } finally {
+        setIsLoading(false);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [
+      messages,
+      isOnline,
+      userId,
+      guestMessageCount,
+      currentWorkingSlug,
+      isFirstQuery,
+      saveChatHistory,
+      router,
+      showTagline,
+    ]
+  );
 
   const handleRetry = (content: string) => {
-    // Clear error state
-    setApiError(null);
-
-    // Call handleSendMessage with the original message content
-    handleSendMessage(content);
+    setApiError(null); // Clear previous error display
+    // Find the failed message by content (could be improved with ID if available)
+    const failedMessage = messages.find(
+      (m) => m.role === "user" && m.content === content && m.status === "failed"
+    );
+    if (failedMessage) {
+      // Update status to indicate retry attempt
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === failedMessage.id
+            ? { ...m, status: "queued", isLoading: true }
+            : m
+        )
+      );
+      handleSendMessage(content, true); // Use useCallback version
+    } else {
+      // Fallback if message not found (shouldn't happen often)
+      handleSendMessage(content); // Use useCallback version
+    }
   };
 
   return (
     <div className='flex flex-1 flex-col h-[80vh] sm:h-[90%]'>
-      <div className='flex-1 h-[30vh] sm:h-[40%] md:h-[50%] overflow-y-auto'>
-        <MessageList
-          messages={messages}
-          onRetry={handleRetry}
-        />
+      <div className='flex-1 h-[30vh] sm:h-[40%] md:h-[50%] overflow-y-auto relative'>
+        {/* Tagline Logic */}
+        {showTagline && (
+          <div className='absolute inset-0 flex flex-col items-center justify-center text-center p-4 opacity-70'>
+            <Image
+              src='/icon-192x192.png'
+              alt='SmartSearch Logo'
+              width={64}
+              height={64}
+              className='mb-4'
+            />
+            <h2 className='text-xl font-semibold text-muted-foreground'>
+              Get Results, Not Links
+            </h2>
+          </div>
+        )}
+        {/* Message List Logic */}
+        {(!showTagline || messages.length > 0) && (
+          <MessageList
+            messages={messages}
+            onRetry={handleRetry}
+          />
+        )}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Error Display */}
       {apiError && (
         <div className='p-4 mx-4 mb-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg'>
           <div className='flex items-start gap-3'>
@@ -395,6 +592,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         </div>
       )}
 
+      {/* Login Prompt */}
       {showLoginPrompt && !userId && (
         <div className='p-4 mx-4 mb-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg'>
           <div className='flex items-start gap-3'>
@@ -425,22 +623,23 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         </p>
       </div>
 
+      {/* Chat Input */}
       <div className='sticky bottom-0 bg-background'>
         <ChatInput
-          onSendMessage={handleSendMessage}
-          ButtonText={isOnline ? "Send" : "🦧"}
+          onSendMessage={(msg) => handleSendMessage(msg)} // Pass the useCallback version
+          ButtonText={isOnline ? "Send" : "Queued"} // Changed button text for offline
           TextareaPlaceholder={
             isOnline
               ? "Message SmartSearch..."
-              : "Please connect to the internet."
+              : "Offline - Messages will be queued."
           }
           isLoading={isLoading}
           input={input}
           setInput={setInput}
           disabled={
-            (!userId && !isOnline && guestMessageCount >= MAX_FREE_MESSAGES) ||
-            !!apiError
-          }
+            (!userId && guestMessageCount >= MAX_FREE_MESSAGES) ||
+            (!isOnline && isLoading)
+          } // Adjusted disabled logic
         />
       </div>
     </div>

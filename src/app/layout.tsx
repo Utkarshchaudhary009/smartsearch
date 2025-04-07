@@ -6,12 +6,11 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { TanstackProvider } from "@/lib/tanstack";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { PWAProvider } from "@/components/providers/pwa-provider";
-import { InstallBanner } from "@/components/pwa";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
-
+import { InstallBanner } from "@/components/pwa/InstallBanner";
 const inter = Inter({ subsets: ["latin"] });
 const APP_NAME = "Smart Search Chat";
 const APP_DESCRIPTION =
@@ -98,13 +97,12 @@ export default async function RootLayout({
             <TanstackProvider>
               <PWAProvider />
               <div className='flex h-screen flex-col'>
-                <Toaster />
-                <Navbar userId={userId} />
-
+                <Toaster position='top-center' />
                 <InstallBanner
                   delay={5000}
                   showOnce={true}
                 />
+                <Navbar userId={userId} />
                 <div className='flex flex-1 overflow-hidden'>
                   {/* Sidebar for desktop view */}
                   <div className='hidden md:flex md:w-64 md:flex-col border-r'>
