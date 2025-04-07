@@ -279,15 +279,6 @@ export async function POST(request: Request) {
     // **IN PRODUCTION: You MUST get the clerkId securely from the authenticated session.**
     const { message, chatHistory, clerkId } = await request.json();
 
-    if (!clerkId) {
-      responseContent=`
-       ** Image Generation** feature is only Avilable for **login** users.
-       ---
-       ## LOGIN / SIGN IN to use it for **free**.
-       ---
-       `
-      return NextResponse.json({ message: responseContent });
-    }
 
     if (!message) {
       return NextResponse.json(
@@ -311,6 +302,16 @@ export async function POST(request: Request) {
     console.log("Thinker Result:", thinkerResult);
 
     
+    if (!clerkId && thinkerResult.generateImage && thinkerResult.prompt) {
+      responseContent=`
+       ** Image Generation** feature is only Avilable for **login** users.
+       ---
+       ## LOGIN / SIGN IN to use it for **free**.
+       ---
+       `
+       console.log(responseContent)
+      return NextResponse.json({ message: responseContent });
+    }
 
     if (thinkerResult.generateImage && thinkerResult.prompt) {
       // 2. Generate and Store Image if requested
