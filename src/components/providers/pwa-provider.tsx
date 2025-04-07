@@ -4,29 +4,21 @@ import { useEffect } from "react";
 
 export function PWAProvider() {
   useEffect(() => {
+    // We don't need to manually register the service worker
+    // Serwist will handle this automatically
+    
+    // Just add event listeners for tracking install status
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      const registerServiceWorker = async () => {
-        try {
-          // Wait for the window to load fully
-          if (window.workbox !== undefined) {
-            // Workbox is available (production build)
-            const registration = await navigator.serviceWorker.register(
-              "/sw.js"
-            );
-            console.log(
-              "Service Worker registered with scope:",
-              registration.scope
-            );
-          }
-        } catch (error) {
-          console.error("Service Worker registration failed:", error);
-        }
+      // Listen for app installed event for analytics/tracking
+      const handleAppInstalled = () => {
+        console.log("App was installed to home screen");
+        // You could send analytics event here
       };
-
-      window.addEventListener("load", registerServiceWorker);
-
+      
+      window.addEventListener("appinstalled", handleAppInstalled);
+      
       return () => {
-        window.removeEventListener("load", registerServiceWorker);
+        window.removeEventListener("appinstalled", handleAppInstalled);
       };
     }
   }, []);
