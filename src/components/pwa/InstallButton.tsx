@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
-interface InstallButtonProps extends ButtonProps {
+interface InstallButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string;
 }
 
@@ -17,7 +17,7 @@ export function InstallButton({ text = "Install App", className, ...props }: Ins
       // Check if already in standalone mode
       setIsStandalone(
         window.matchMedia("(display-mode: standalone)").matches || 
-        (window.navigator as any).standalone === true
+        (window.navigator as unknown as { standalone: boolean }).standalone === true
       );
       
       // Detect iOS
@@ -33,15 +33,21 @@ export function InstallButton({ text = "Install App", className, ...props }: Ins
         setInstallPrompt(e);
       };
 
-      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt as any);
-      
+      window.addEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt as unknown as EventListener   
+      );
+
       // Reset on install
       window.addEventListener("appinstalled", () => {
         setInstallPrompt(null);
       });
 
       return () => {
-        window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt as any);
+        window.removeEventListener(
+          "beforeinstallprompt",
+          handleBeforeInstallPrompt as unknown as EventListener
+        );
       };
     }
   }, []);
