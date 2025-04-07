@@ -36,13 +36,13 @@ export default function MessageList({ messages, onRetry }: MessageListProps) {
             // If you reduce these pixel values, the size of the div will decrease accordingly.
             // The 'width={64}' and 'height={64}' in the Image component set the image dimensions to 64 pixels each.
             // Reducing these values will also decrease the image size, which can impact the data size if the image is being resized on the server or client-side.
-            <div className='h-8 w-8 rounded-full bg-primary flex-shrink-0'>
+            <div className='h-5 w-5 rounded-full bg-primary flex-shrink-0'>
               <Image
                 src='/web-app-manifest-192x192.svg'
                 alt='SmartSearch Logo'
-                width={16} // This sets the width of the image to 16 pixels
-                height={16} // This sets the height of the image to 16 pixels
-                className='mb-4 rounded-xl'
+                width={20} // This sets the width of the image to 20 pixels
+                height={20} // This sets the height of the image to 20 pixels
+                className='rounded-xl'
               />
             </div>
           )}
