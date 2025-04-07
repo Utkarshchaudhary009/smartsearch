@@ -110,7 +110,7 @@ export function InstallBanner({
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {isIOS
                 ? "Install our app on your iPhone for a better experience"
-                : "Add to your home screen for a better experience"}
+                : "Add to your home screen for a better experience . "}
             </p>
           </div>
         </div>

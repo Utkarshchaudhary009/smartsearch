@@ -14,7 +14,8 @@ import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 const APP_NAME = "Smart Search Chat";
-const APP_DESCRIPTION = "AI-powered chat interface with smart search capabilities";
+const APP_DESCRIPTION =
+  "AI-powered chat interface with smart search capabilities";
 const APP_TITLE_TEMPLATE = `%s | ${APP_NAME}`;
 export const metadata: Metadata = {
   title: {
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: APP_NAME,
-  },  
+  },
   themeColor: "#ffffff",
   icons: {
     icon: "/favicon.ico",
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: {
-      default: APP_NAME,  
+      default: APP_NAME,
       template: APP_TITLE_TEMPLATE,
     },
     siteName: APP_NAME,
@@ -73,7 +74,6 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-
 export default async function RootLayout({
   children,
 }: {
@@ -99,6 +99,10 @@ export default async function RootLayout({
               <PWAProvider />
               <div className='flex h-screen flex-col'>
                 <Navbar userId={userId} />
+                <InstallBanner
+                  delay={5000}
+                  showOnce={true}
+                />
                 <div className='flex flex-1 overflow-hidden'>
                   {/* Sidebar for desktop view */}
                   <div className='hidden md:flex md:w-64 md:flex-col border-r'>
@@ -111,10 +115,6 @@ export default async function RootLayout({
                   </main>
                 </div>
               </div>
-              <InstallBanner
-                delay={5000}
-                showOnce={true}
-              />
             </TanstackProvider>
             <Toaster />
           </ThemeProvider>
