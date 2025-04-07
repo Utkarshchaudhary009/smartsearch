@@ -217,6 +217,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: msg.content,
+            clerkId:userId || false,
             chatHistory,
           }),
           signal: controller.signal,
