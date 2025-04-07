@@ -99,6 +99,7 @@ export default async function RootLayout({
               <PWAProvider />
               <div className='flex h-screen flex-col'>
                 <Navbar userId={userId} />
+                <Toaster />
                 <InstallBanner
                   delay={5000}
                   showOnce={true}
@@ -116,7 +117,6 @@ export default async function RootLayout({
                 </div>
               </div>
             </TanstackProvider>
-            <Toaster />
           </ThemeProvider>
         </body>
       </html>

@@ -6,12 +6,16 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
+  ButtonText?: string;
+  TextareaPlaceholder?: string;
   isLoading?: boolean;
   disabled?: boolean;
 }
 
 export default function ChatInput({
   onSendMessage,
+  ButtonText = "Send",
+  TextareaPlaceholder = "Message SmartSearch",
   isLoading = false,
   disabled = false,
 }: ChatInputProps) {
@@ -35,7 +39,7 @@ export default function ChatInput({
     <div className='p-2 sm:p-4 border-t'>
       <div className='flex gap-2'>
         <Textarea
-          placeholder='Message SmartSearch'
+          placeholder={TextareaPlaceholder}
           value={input}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
             setInput(e.target.value)
@@ -49,7 +53,7 @@ export default function ChatInput({
           onClick={handleSendMessage}
           disabled={!input.trim() || isLoading || disabled}
         >
-          Send
+          {ButtonText}
         </Button>
       </div>
     </div>

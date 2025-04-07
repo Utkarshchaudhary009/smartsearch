@@ -10,7 +10,7 @@ interface InstallBannerProps {
 }
 
 export function InstallBanner({
-  delay = 3000,
+  delay = 3500,
   showOnce = true,
 }: InstallBannerProps) {
   const [visible, setVisible] = useState(false);
@@ -83,7 +83,7 @@ export function InstallBanner({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 p-4 shadow-lg border-t border-gray-200 dark:border-gray-800 z-50">
+    <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-900 p-4 shadow-lg border-t border-gray-200 dark:border-gray-800 z-50">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="hidden sm:block">

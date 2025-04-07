@@ -12,7 +12,8 @@ import { ChatSlugGenerator } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
 import { generateSlugTimestamp } from "@/lib/dateUtils";
-
+import { useOnline } from "@/hooks/useOnline";
+import { toast } from "sonner";
 interface ChatInterfaceProps {
   userId: string | null;
 }
@@ -31,6 +32,8 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isFirstQuery, setIsFirstQuery] = useState(chatSlug === "default");
+  const isOnline = useOnline();
+  const [wasOnline, setWasOnline] = useState(isOnline);
 
   // Add a state to track the current working slug
   const [currentWorkingSlug, setCurrentWorkingSlug] =
@@ -76,8 +79,19 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       setShowLoginPrompt(false);
     }
   }, [userId]);
-
+  // Online status change handler
+  useEffect(() => {
+    if (isOnline !== wasOnline) {
+      toast(isOnline ? "Back Online" : "Offline", {
+        description: isOnline
+          ? "Connection restored. You can continue chatting."
+          : "You're offline. Messages will send when connected.",
+      });
+      setWasOnline(isOnline);
+    }
+  }, [isOnline, wasOnline]);
   // Load guest message count from localStorage on component mount
+
   useEffect(() => {
     if (!userId) {
       try {
@@ -161,6 +175,12 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     // Clear any previous API errors
     setApiError(null);
 
+    if (!isOnline) {
+      toast("Offline", {
+        description: "Message queued. Will send when online.",
+      });
+      return;
+    }
     console.log(
       "Debug - handleSendMessage start, userId:",
       userId,
@@ -263,7 +283,9 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       // Now generate a new slug just before saving if needed
       if (isFirstQuery && currentWorkingSlug === "default") {
         // Generate the new slug just before saving
-        const newSlug = await createSlugFromQuery(`user:"${content}" -> Ai:"${data.message}"`);
+        const newSlug = await createSlugFromQuery(
+          `user:"${content}" -> Ai:"${data.message}"`
+        );
         console.log("Debug - created new slug for saving:", newSlug);
 
         // Update our working slug state
@@ -279,7 +301,12 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
 
       // Save to database if user is logged in
       if (userId) {
-        console.log("Debug - saving to database, chatSlug:", slugToUse," $$ ",currentWorkingSlug);
+        console.log(
+          "Debug - saving to database, chatSlug:",
+          slugToUse,
+          " $$ ",
+          currentWorkingSlug
+        );
         saveChatHistory({
           clerkId: userId,
           query: content,
@@ -401,9 +428,11 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       <div className='sticky bottom-0 bg-background'>
         <ChatInput
           onSendMessage={handleSendMessage}
+          ButtonText={isOnline ? "Send" : "🦧"}
+          TextareaPlaceholder={isOnline ? "Message SmartSearch..." : "Please connect to the internet to send messages"}
           isLoading={isLoading}
           disabled={
-            (!userId && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
+            (!userId && !isOnline && guestMessageCount >= MAX_FREE_MESSAGES) || !!apiError
           }
         />
       </div>
