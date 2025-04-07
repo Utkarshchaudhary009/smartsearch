@@ -4,6 +4,7 @@ import MarkdownRenderer from "./MarkdownRenderer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface MessageListProps {
   messages: Message[];
@@ -31,7 +32,19 @@ export default function MessageList({ messages, onRetry }: MessageListProps) {
           )}
         >
           {message.role === "agent" && (
-            <div className='h-8 w-8 rounded-full bg-primary flex-shrink-0' />
+            // The class 'h-8' sets the height of the div to 2rem (32 pixels), and 'w-8' sets the width to 2rem (32 pixels).
+            // If you reduce these pixel values, the size of the div will decrease accordingly.
+            // The 'width={64}' and 'height={64}' in the Image component set the image dimensions to 64 pixels each.
+            // Reducing these values will also decrease the image size, which can impact the data size if the image is being resized on the server or client-side.
+            <div className='h-8 w-8 rounded-full bg-primary flex-shrink-0'>
+              <Image
+                src='/web-app-manifest-192x192.svg'
+                alt='SmartSearch Logo'
+                width={16} // This sets the width of the image to 16 pixels
+                height={16} // This sets the height of the image to 16 pixels
+                className='mb-4 rounded-xl'
+              />
+            </div>
           )}
           <div className='space-y-2 w-full'>
             <div className='flex items-center gap-2'>

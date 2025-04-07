@@ -634,7 +634,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         {showTagline && (
           <div className='absolute inset-0 flex flex-col items-center justify-center text-center p-4 opacity-70'>
             <Image
-              src='/web-app-manifest-192x192.png'
+              src='/web-app-manifest-192x192.svg'
               alt='SmartSearch Logo'
               width={64}
               height={64}
