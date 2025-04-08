@@ -1,0 +1,48 @@
+# Workflow Name: Welcome New Contributors
+#
+# This workflow automatically welcomes new contributors to the repository
+# by posting a predefined message on their first opened issue or pull request.
+
+name: Welcome New Contributors
+
+on:
+  # Trigger the workflow when a pull request is opened by a first-time contributor.
+  pull_request_target:
+    types: [opened]
+
+  # Trigger the workflow when an issue is opened by a first-time contributor.
+  issues:
+    types: [opened]
+
+jobs:
+  # Define the job that will handle the greeting.
+  greet_new_contributor:
+    # Specify the runner environment.
+    runs-on: ubuntu-latest
+
+    # Grant necessary permissions to the workflow.
+    permissions:
+      issues: write
+      pull-requests: write
+
+    # Define the steps to be executed in this job.
+    steps:
+      # Use the 'actions/first-interaction' action to handle the greeting logic.
+      - name: Greet new contributor
+        uses: actions/first-interaction@v1
+        with:
+          # The GitHub token with the necessary permissions.
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # The message to display on a user's first opened issue.
+          issue-message: >
+            👋 Welcome to our community! We appreciate you taking the time to open your first issue.
+            Our team will review it as soon as possible. In the meantime, please make sure you have
+            provided all the necessary information and followed our contribution guidelines. Thank you!
+
+          # The message to display on a user's first opened pull request.
+          pr-message: >
+            🎉 Thank you for submitting your first pull request! We are excited to have you contribute
+            to our project. Our team will review your changes carefully. Please ensure your PR adheres
+            to our coding standards and includes relevant tests. We appreciate your contribution!
+ 
