@@ -24,7 +24,7 @@ export default function DeepResearch() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Get the Google API key - in a production app, you'd handle this with proper auth
-  const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_KEY || "";
+
   const clerkId = user?.id || "guest";
 
   const {
@@ -36,7 +36,6 @@ export default function DeepResearch() {
   } = useChat({
     api: "/api/smartai/deepresearch",
     body: {
-      googleApiKey,
       clerkId,
     },
     onResponse: () => {

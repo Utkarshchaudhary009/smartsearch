@@ -8,8 +8,8 @@ export const runtime = "edge";
 export async function POST(req: NextRequest) {
   try {
     // Parse the request body
-    const { messages, googleApiKey, clerkId } = await req.json();
-
+    const { messages, clerkId } = await req.json();
+    const googleApiKey = process.env.GOOGLE_AI_KEY;
     if (!googleApiKey) {
       return new Response(JSON.stringify({ error: "Missing Google API key" }), {
         status: 400,
