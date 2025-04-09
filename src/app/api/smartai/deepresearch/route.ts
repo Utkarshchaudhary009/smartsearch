@@ -9,26 +9,34 @@ export const runtime = "edge";
 function createEventStreamTransformer(): TransformStream<StreamEvent, string> {
   return new TransformStream({
     transform(chunk: StreamEvent, controller) {
-      // Log every event chunk to see the structure
-      console.log("--- STREAM EVENT ---");
-      console.log(`Event: ${chunk.event}`);
-      console.log("Data:", JSON.stringify(chunk.data, null, 2));
-      console.log("--------------------");
+      // Keep logging for debugging if needed
+      // console.log("--- STREAM EVENT ---");
+      // console.log(`Event: ${chunk.event}`);
+      // console.log("Data:", JSON.stringify(chunk.data, null, 2));
+      // console.log("--------------------");
 
+      // Check for LLM stream events and extract content from the correct path
       if (
-        chunk.event === "on_chat_model_stream" &&
-        chunk.data?.chunk?.content
+        chunk.event === "on_llm_stream" &&
+        chunk.data?.chunk?.kwargs?.content
       ) {
         // Enqueue the string content directly
-        controller.enqueue(chunk.data.chunk.content as string);
-      } else if (chunk.event === "on_tool_end" && chunk.data?.output) {
-        // Example: Optionally include tool output
-        // controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
+        controller.enqueue(chunk.data.chunk.kwargs.content as string);
       }
-      // ADD MORE CONDITIONS HERE BASED ON LOGS
-      // For example, sometimes the final answer might be in a different event type
-      // like "on_chain_end" or similar, depending on the agent structure.
-      // Check the logged 'chunk.data' structure for where the final response might be.
+      if (
+        chunk.event === "on_chain_stream" &&
+        chunk.data?.chunk?.agent?.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content
+      ) {
+        // Enqueue the string content directly
+        controller.enqueue(chunk.data.chunk.agent.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content as string);
+      }
+    //   Keep the tool end condition if you want to stream tool outputs later
+      else if (chunk.event === "on_tool_end" && chunk.data?.output) {
+         controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
+      }
+      else if (chunk.event === "on_chain_stream" && chunk.data?.output?.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content) {
+         controller.enqueue(`\nChain Output: ${chunk.data.output.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content}\n`);
+      }
     },
   });
 }
