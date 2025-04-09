@@ -1,18 +1,93 @@
-# MDX Test Document
+# Enhanced MDX Components
 
-This is a sample MDX file to test our custom MDX renderer with Shadcn UI components.
+This document showcases all the available components for the MDX renderer with Shadcn UI integration.
+
+<AspectRatio ratio={16/9}>
+    <img src="https://spgqktricuenzbwtddfu.supabase.co/storage/v1/object/public/generated_images_bucket/test_user_123/b6ec6edf-a2ce-4f96-85b3-35b6d58a06eb.png" alt="futuristic city with flying cars and tall skyscrapers" width={800} height={450} />
+</AspectRatio>
+<Card className='p-4'>
+  <h3>Latest Advancements in Artificial Intelligence</h3>
+  <p>AI is rapidly evolving across various domains. Here are some key highlights:</p>
+  <ul>
+    <li><strong>AI Models and Generative AI:</strong> Advancements like Google's Gemini 2.0 and updates to Imagen, Veo, and MusicFX are empowering creativity.</li>
+    <li><strong>Deep Learning and Neural Networks:</strong> CNNs and RNNs are enhancing image recognition and natural language processing.</li>
+    <li><strong>Natural Language Processing (NLP):</strong> RNNs are improving how machines understand and interact with human language, advancing conversational AI and chatbots.</li>
+    <li><strong>AI in Science:</strong> AI is being used for protein structure prediction (AlphaFold), brain understanding, weather forecasting, and new material development.</li>
+    <li><strong>AI in Mathematics:</strong> Systems like AlphaGeometry can solve complex geometry problems.</li>
+    <li><strong>AI in Weather Forecasting:</strong> Models like GraphCast enhance weather predictions, especially for extreme events.</li>
+    <li><strong>AI in Healthcare:</strong> AI improves cancer diagnostics, drug discovery, and telemedicine.</li>
+    <li><strong>AI in Cybersecurity:</strong> AI solutions accelerate incident detection and improve incident response.</li>
+    <li><strong>AI in Material Science:</strong> AI is used to discover new materials for solar cells, batteries, and superconductors.</li>
+  </ul>
+</Card>
+<Card className='p-4'>
+  <h3>Summary</h3>
+  <p>We've covered the following:</p>
+  <ul>
+    <li>I generated an image of a futuristic city with flying cars and tall skyscrapers.</li>
+    <li>I provided a summary of the latest advancements in artificial intelligence, including AI models, deep learning, NLP, and AI applications in various fields like science, healthcare, and cybersecurity.</li>
+  </ul>
+</Card>
+
+<Separator className='my-6' />
+
+<Card className='p-4'>
+  <h3>Suggested Next Steps</h3>
+  <p>Based on what we've discussed, here are a few suggestions for what we could do next:</p>
+  <ol>
+    <li><strong>Image Editing:</strong> Would you like me to edit the futuristic city image further? For example, I could add more details or change the color scheme.</li>
+    <li><strong>Specific AI Applications:</strong> We could delve deeper into a specific application of AI that interests you, such as AI in healthcare or cybersecurity.</li>
+    <li><strong>Generate More Images:</strong> I could generate more images based on different prompts.</li>
+    <li><strong>Explore Other Topics:</strong> We can switch gears and explore a completely different topic if you'd like.</li>
+  </ol>
+</Card>
 
 ## File Display Component
 
-Here's our custom file display component:
+Our custom file display component shows file types in square brackets and filename/size in parentheses:
 
-<FileDisplay type="pdf" filename="document.pdf" size="2.5MB" />
+<FileDisplay
+  type='pdf'
+  filename='document.pdf'
+  size='2.5MB'
+/>
+<FileDisplay
+  type='image'
+  filename='photo.jpg'
+  size='1.2MB'
+/>
+<FileDisplay
+  type='zip'
+  filename='archive.zip'
+  size='5.8MB'
+/>
 
-<FileDisplay type="image" filename="photo.jpg" size="1.2MB" />
+## Basic UI Components
 
-<FileDisplay type="zip" filename="archive.zip" size="5.8MB" />
+### Button
 
-## Dropdown Menu
+<Button>Click Me</Button>
+<Button
+  variant='outline'
+  className='ml-2'
+>
+  Outline
+</Button>
+<Button
+  variant='destructive'
+  className='ml-2'
+>
+  Destructive
+</Button>
+
+### Card
+
+<Card className='p-4 mb-4'>
+  <h3>Card Title</h3>
+  <p>This is content inside a Shadcn Card component.</p>
+</Card>
+
+### Dropdown Menu
 
 <Dropdown trigger={<Button>Open Menu</Button>}>
   <DropdownItem>Option 1</DropdownItem>
@@ -20,31 +95,201 @@ Here's our custom file display component:
   <DropdownItem>Option 3</DropdownItem>
 </Dropdown>
 
-## Card Component
+## Accordion
 
-<Card className="p-4 mb-4">
-  <h3>Card Title</h3>
-  <p>This is content inside a Shadcn Card component.</p>
-</Card>
+<Accordion
+  type='single'
+  collapsible
+>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>What is MDX?</AccordionTrigger>
+    <AccordionContent>
+      MDX is a file format that combines Markdown with JSX. It allows you to use
+      React components within your Markdown content.
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>How do I use this renderer?</AccordionTrigger>
+    <AccordionContent>
+      You can use the MDXRenderer component by passing it serialized MDX
+      content, and it will render all the components shown in this document.
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
 
-## Image with AspectRatio
+## Tabs
 
-<AspectRatio ratio={16/9} className="mb-4">
-  <img src="https://images.unsplash.com/photo-1605460375648-278bcbd579a6" alt="A beautiful landscape" />
+<Tabs defaultValue='overview'>
+  <TabsList>
+    <TabsTrigger value='overview'>Overview</TabsTrigger>
+    <TabsTrigger value='features'>Features</TabsTrigger>
+    <TabsTrigger value='usage'>Usage</TabsTrigger>
+  </TabsList>
+  <TabsContent value='overview'>
+    <Card className='p-4'>
+      <h3>Overview</h3>
+      <p>
+        This MDX renderer provides a rich set of components for rendering
+        interactive content.
+      </p>
+    </Card>
+  </TabsContent>
+  <TabsContent value='features'>
+    <Card className='p-4'>
+      <h3>Features</h3>
+      <ul>
+        <li>Rich UI components</li>
+        <li>Interactive elements</li>
+        <li>Data visualization</li>
+        <li>Custom file display</li>
+      </ul>
+    </Card>
+  </TabsContent>
+  <TabsContent value='usage'>
+    <Card className='p-4'>
+      <h3>Usage</h3>
+      <p>
+        Import the MDXRenderer component and pass it serialized MDX content.
+      </p>
+      <pre>
+        <code>{`<MDXRenderer content={serializedMDX} />`}</code>
+      </pre>
+    </Card>
+  </TabsContent>
+</Tabs>
+
+## Avatar
+
+<div className='flex gap-4 my-4'>
+  <Avatar>
+    <AvatarImage src='https://github.com/shadcn.png' />
+    <AvatarFallback>CN</AvatarFallback>
+  </Avatar>
+  <Avatar>
+    <AvatarImage src='https://github.com/vercel.png' />
+    <AvatarFallback>VC</AvatarFallback>
+  </Avatar>
+  <Avatar>
+    <AvatarFallback>AI</AvatarFallback>
+  </Avatar>
+</div>
+
+## Alert Dialog
+
+<Alert
+  trigger={<Button>Open Alert</Button>}
+  title='Are you sure?'
+  description='This action cannot be undone. This will permanently delete your account and remove your data from our servers.'
+  cancelText='Cancel'
+  confirmText='Continue'
+>
+  <p>Additional content can be placed here if needed.</p>
+</Alert>
+
+## Charts
+
+### Bar Chart
+
+<BarChart
+  data={[
+    { name: "Jan", value: 400 },
+    { name: "Feb", value: 300 },
+    { name: "Mar", value: 500 },
+    { name: "Apr", value: 200 },
+    { name: "May", value: 600 },
+  ]}
+  keys={["value"]}
+  xAxisKey='name'
+  title='Monthly Sales'
+  height={300}
+/>
+
+### Line Chart
+
+<LineChart
+  data={[
+    { name: "Jan", value: 400, forecast: 300 },
+    { name: "Feb", value: 300, forecast: 400 },
+    { name: "Mar", value: 500, forecast: 500 },
+    { name: "Apr", value: 200, forecast: 300 },
+    { name: "May", value: 600, forecast: 550 },
+  ]}
+  keys={["value", "forecast"]}
+  xAxisKey='name'
+  title='Monthly Performance'
+  curved={true}
+  height={300}
+/>
+
+### Pie Chart
+
+<PieChart
+  data={[
+    { name: "Group A", value: 400 },
+    { name: "Group B", value: 300 },
+    { name: "Group C", value: 500 },
+    { name: "Group D", value: 200 },
+  ]}
+  title='Distribution'
+  donut={true}
+  height={300}
+/>
+
+## ScrollArea
+
+<ScrollArea className='h-72 w-full rounded-md border p-4'>
+  <div>
+    <p className='mb-4'>This is a scrollable area with lots of content:</p>
+    {Array.from({ length: 15 }).map((_, i) => (
+      <div
+        className='mb-4'
+        key={i}
+      >
+        <h3>Section {i + 1}</h3>
+        <p>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec
+          purus feugiat, molestie ipsum et, consequat nibh.
+        </p>
+      </div>
+    ))}
+  </div>
+</ScrollArea>
+
+## Images with AspectRatio
+
+<AspectRatio
+  ratio={16 / 9}
+  className='mb-4'
+>
+  <img
+    src='https://images.unsplash.com/photo-1605460375648-278bcbd579a6'
+    alt='A beautiful landscape'
+  />
 </AspectRatio>
 
 ## Tables
 
-| Name | Role | Department |
-|------|------|------------|
-| John | Developer | Engineering |
-| Sarah | Designer | Design |
-| Mike | Manager | Operations |
+| Name  | Role      | Department  |
+| ----- | --------- | ----------- |
+| John  | Developer | Engineering |
+| Sarah | Designer  | Design      |
+| Mike  | Manager   | Operations  |
 
-## Code Block
+## Code Blocks
 
 ```javascript
 function greeting() {
   return "Hello from MDX!";
 }
-``` 
+
+// This will be highlighted
+const data = {
+  labels: ["Jan", "Feb", "Mar"],
+  datasets: [
+    {
+      label: "Sales",
+      data: [30, 45, 60],
+    },
+  ],
+};
+```

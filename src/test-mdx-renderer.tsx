@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { serialize } from 'next-mdx-remote/serialize';
-import MDXRenderer from './components/mdx/MDXRenderer';
-import { MDXRemoteSerializeResult } from 'next-mdx-remote';
+import { useEffect, useState } from "react";
+import { serialize } from "next-mdx-remote/serialize";
+import MDXRenderer from "./components/mdx/MDXRenderer";
+import { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 const mdxContent = `
 # MDX Renderer Testing
@@ -30,7 +30,9 @@ This is a simple test for our MDX Renderer component.
 `;
 
 export default function TestMDXRenderer() {
-  const [mdxSource, setMdxSource] = useState<MDXRemoteSerializeResult | null>(null);
+  const [mdxSource, setMdxSource] = useState<MDXRemoteSerializeResult | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function TestMDXRenderer() {
         setMdxSource(serialized);
         setLoading(false);
       } catch (error) {
-        console.error('Error serializing MDX:', error);
+        console.error("Error serializing MDX:", error);
         setLoading(false);
       }
     };
@@ -57,12 +59,12 @@ export default function TestMDXRenderer() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className='container mx-auto p-6'>
       <MDXRenderer content={mdxSource} />
-      <div className="mt-8 p-4 border rounded">
-        <h2 className="text-xl font-bold">Test Results</h2>
+      <div className='mt-8 p-4 border rounded'>
+        <h2 className='text-xl font-bold'>Test Results</h2>
         <p>MDX content loaded and rendered successfully.</p>
       </div>
     </div>
   );
-} 
+}
