@@ -217,7 +217,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: msg.content,
-            clerkId:userId || false,
+            clerkId:userId || "guest_user",
             chatHistory,
           }),
           signal: controller.signal,
@@ -492,7 +492,7 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
         const response = await fetch("/api/smartai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: content, chatHistory }),
+          body: JSON.stringify({ message: content, clerkId: userId || "guest_user", chatHistory }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);

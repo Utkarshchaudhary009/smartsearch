@@ -14,7 +14,6 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
     // 3. Initialize API clients
     const googleApiKey = process.env.GOOGLE_AI_KEY;
     if (!googleApiKey) {
