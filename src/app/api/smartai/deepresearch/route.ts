@@ -9,16 +9,26 @@ export const runtime = "edge";
 function createEventStreamTransformer(): TransformStream<StreamEvent, string> {
   return new TransformStream({
     transform(chunk: StreamEvent, controller) {
+      // Log every event chunk to see the structure
+      console.log("--- STREAM EVENT ---");
+      console.log(`Event: ${chunk.event}`);
+      console.log("Data:", JSON.stringify(chunk.data, null, 2));
+      console.log("--------------------");
+
       if (
         chunk.event === "on_chat_model_stream" &&
         chunk.data?.chunk?.content
       ) {
         // Enqueue the string content directly
-        controller.enqueue(chunk.data.chunk.content);
+        controller.enqueue(chunk.data.chunk.content as string);
       } else if (chunk.event === "on_tool_end" && chunk.data?.output) {
-         // Optionally handle tool output if needed in the future
-         // controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
+        // Example: Optionally include tool output
+        // controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
       }
+      // ADD MORE CONDITIONS HERE BASED ON LOGS
+      // For example, sometimes the final answer might be in a different event type
+      // like "on_chain_end" or similar, depending on the agent structure.
+      // Check the logged 'chunk.data' structure for where the final response might be.
     },
   });
 }
@@ -65,7 +75,6 @@ export async function POST(req: NextRequest) {
         "Content-Type": "text/plain; charset=utf-8",
       },
     });
-
   } catch (error) {
     console.error("Error in API route:", error);
     const errorMessage =
