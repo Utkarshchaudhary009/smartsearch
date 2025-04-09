@@ -1,61 +1,23 @@
 import { createSmartAIAgent } from "@/app/api/smartai/utils/Agent";
 import { NextRequest, NextResponse } from "next/server";
 import { Message as VercelChatMessage } from "ai";
+import type { StreamEvent } from "@langchain/core/tracers/log_stream";
 
 export const runtime = "edge";
 
-// Function to create a transform stream that extracts message content
-function createParser(): TransformStream<Uint8Array, string> {
-  const decoder = new TextDecoder();
-  let previous = "";
-
+// Updated parser to handle StreamEvent objects directly
+function createEventStreamTransformer(): TransformStream<StreamEvent, string> {
   return new TransformStream({
-    transform(chunk, controller) {
-      // Decode the chunk and prepend the previous partial chunk
-      const text = previous + decoder.decode(chunk, { stream: true });
-      previous = ""; // Reset previous
-
-      // Process lines
-      const lines = text.split("\n");
-      lines.slice(0, -1).forEach((line) => {
-        if (line.startsWith("data: ")) {
-          try {
-            const json = JSON.parse(line.substring(6));
-            // Look for message content within the LangGraph event structure
-            // This structure might vary based on LangGraph version and agent setup
-            if (
-              json.event === "on_chat_model_stream" &&
-              json.data?.chunk?.content
-            ) {
-              controller.enqueue(json.data.chunk.content);
-            } else if (json.event === "on_tool_end" && json.data?.output) {
-              // Optionally include tool output in the stream if needed
-              // controller.enqueue(`\nTool Output: ${json.data.output}\n`);
-            }
-          } catch (error) {
-            // Ignore lines that are not valid JSON or don't match expected structure
-            console.warn("Failed to parse stream chunk:", line, error);
-          }
-        }
-      });
-
-      // Keep the last partial line for the next chunk
-      previous = lines[lines.length - 1];
-    },
-    flush(controller) {
-      // Handle any remaining text if needed, though typically LangGraph streams end cleanly
-      if (previous.startsWith("data: ")) {
-        try {
-          const json = JSON.parse(previous.substring(6));
-          if (
-            json.event === "on_chat_model_stream" &&
-            json.data?.chunk?.content
-          ) {
-            controller.enqueue(json.data.chunk.content);
-          }
-        } catch (error) {
-          console.warn("Failed to parse final stream chunk:", previous, error);
-        }
+    transform(chunk: StreamEvent, controller) {
+      if (
+        chunk.event === "on_chat_model_stream" &&
+        chunk.data?.chunk?.content
+      ) {
+        // Enqueue the string content directly
+        controller.enqueue(chunk.data.chunk.content);
+      } else if (chunk.event === "on_tool_end" && chunk.data?.output) {
+         // Optionally handle tool output if needed in the future
+         // controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
       }
     },
   });
@@ -75,7 +37,6 @@ export async function POST(req: NextRequest) {
 
     const agent = createSmartAIAgent(googleApiKey, clerkId || "guest");
 
-    // Get the LangGraph stream using streamEvents
     const stream = await agent.streamEvents(
       {
         messages: messages.map((msg: VercelChatMessage) => ({
@@ -83,21 +44,30 @@ export async function POST(req: NextRequest) {
           content: msg.content,
         })),
       },
-      { version: "v1" } // Use streamEvents v1 format
+      { version: "v1" }
     );
 
-    // Create a new ReadableStream that processes LangGraph events
-    const customStream = stream.pipeThrough(createParser());
+    // Pipe through the updated transformer
+    const customStream = stream.pipeThrough(createEventStreamTransformer());
 
-    // Return a standard streaming response
-    return new Response(customStream, {
+    // Encode the string stream back to Uint8Array for the Response body
+    const encoder = new TextEncoder();
+    const encodedStream = customStream.pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          controller.enqueue(encoder.encode(chunk));
+        },
+      })
+    );
+
+    return new Response(encodedStream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
       },
     });
+
   } catch (error) {
     console.error("Error in API route:", error);
-    // Determine if error is an object with a message property
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
