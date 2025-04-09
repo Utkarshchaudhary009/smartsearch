@@ -1,0 +1,50 @@
+# MDX Test Document
+
+This is a sample MDX file to test our custom MDX renderer with Shadcn UI components.
+
+## File Display Component
+
+Here's our custom file display component:
+
+<FileDisplay type="pdf" filename="document.pdf" size="2.5MB" />
+
+<FileDisplay type="image" filename="photo.jpg" size="1.2MB" />
+
+<FileDisplay type="zip" filename="archive.zip" size="5.8MB" />
+
+## Dropdown Menu
+
+<Dropdown trigger={<Button>Open Menu</Button>}>
+  <DropdownItem>Option 1</DropdownItem>
+  <DropdownItem>Option 2</DropdownItem>
+  <DropdownItem>Option 3</DropdownItem>
+</Dropdown>
+
+## Card Component
+
+<Card className="p-4 mb-4">
+  <h3>Card Title</h3>
+  <p>This is content inside a Shadcn Card component.</p>
+</Card>
+
+## Image with AspectRatio
+
+<AspectRatio ratio={16/9} className="mb-4">
+  <img src="https://images.unsplash.com/photo-1605460375648-278bcbd579a6" alt="A beautiful landscape" />
+</AspectRatio>
+
+## Tables
+
+| Name | Role | Department |
+|------|------|------------|
+| John | Developer | Engineering |
+| Sarah | Designer | Design |
+| Mike | Manager | Operations |
+
+## Code Block
+
+```javascript
+function greeting() {
+  return "Hello from MDX!";
+}
+``` 
