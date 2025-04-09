@@ -16,30 +16,35 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
+import { AgentThinking } from "@/components/ui/agent-thinking";
+import { parseAgentOutput } from "@/lib/agent-utils";
+import { AgentAction } from "@/types/agent";
 
 export default function DeepResearch() {
   const { user } = useUser();
   const messageEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [agentActions, setAgentActions] = useState<AgentAction[]>([]);
 
   // Get the Google API key - in a production app, you'd handle this with proper auth
 
   const clerkId = user?.id || "guest";
 
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    status,
-  } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
     api: "/api/smartai/deepresearch",
     body: {
       clerkId,
     },
     onResponse: () => {
       setIsLoading(false);
+    },
+    onFinish: (message) => {
+      // Parse agent output to extract actions
+      if (message.content) {
+        const actions = parseAgentOutput(message.content);
+        setAgentActions(actions);
+      }
     },
   });
 
@@ -62,13 +67,16 @@ export default function DeepResearch() {
     if (input.trim() === "") return;
 
     setIsLoading(true);
+    setAgentActions([]);
     handleSubmit(e);
   };
 
   return (
     <div className='flex flex-col h-screen max-h-screen p-4'>
       <div className='flex items-center justify-between mb-4'>
-        <h1 className='text-2xl font-bold'>Deep Research Assistant - {status}</h1>
+        <h1 className='text-2xl font-bold'>
+          Deep Research Assistant - {status}
+        </h1>
       </div>
 
       <Card className='flex-1 flex flex-col overflow-hidden mb-4'>
@@ -100,7 +108,7 @@ export default function DeepResearch() {
                         : "bg-muted"
                     }`}
                   >
-                    {message.role === "user" ? (    
+                    {message.role === "user" ? (
                       <p>{message.content}</p>
                     ) : (
                       <div className='prose dark:prose-invert'>
@@ -110,6 +118,12 @@ export default function DeepResearch() {
                   </div>
                 </div>
               ))}
+
+              {/* Show agent reasoning after the last message */}
+              {agentActions.length > 0 && (
+                <AgentThinking actions={agentActions} />
+              )}
+
               <div ref={messageEndRef} />
             </div>
           )}

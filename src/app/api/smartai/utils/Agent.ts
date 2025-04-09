@@ -7,7 +7,6 @@ import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { editAndStoreImage } from "./imageEdit";
 import { generateAndStoreImage, initSupabaseClient } from "./imageGeneration";
 import { generateChatResponse, Message } from "./chatbot";
-
 const prompt = `
 You are a helpful assistant that can answer questions, help with tasks, and provide information.
 You can use the following tools to help you:
@@ -152,6 +151,7 @@ export function getAgentResponse(
   console.log(mdx);
   return mdx;
 }
+
 // Define the tools that will be available to the agent
 export const createSmartAITools = (genAI: GoogleGenAI, clerkId: string) => {
   // Tool for generating and storing images
