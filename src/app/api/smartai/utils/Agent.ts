@@ -180,7 +180,7 @@ export const createSmartAITools = (genAI: GoogleGenAI, clerkId: string) => {
     async ({
       imageUrl,
       prompt,
-      altText
+      altText,
     }: {
       imageUrl: string;
       prompt: string;
@@ -221,8 +221,7 @@ export const createSmartAITools = (genAI: GoogleGenAI, clerkId: string) => {
   );
 
   const tavilyTool = new TavilySearchResults({
-    apiKey:
-      process.env.TAVILY_API_KEY,
+    apiKey: process.env.TAVILY_API_KEY,
     maxResults: 3,
   });
   return [imageGenerationTool, chatbotTool, tavilyTool, imageEditTool];
@@ -248,7 +247,6 @@ export const createSmartAIAgent = (googleApiKey: string, clerkId: string) => {
     llm: model,
     prompt: prompt,
     tools,
-    responseFormat: AgentResponseSchema,
   });
 
   return agent;
