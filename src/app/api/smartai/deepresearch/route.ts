@@ -23,20 +23,20 @@ function createEventStreamTransformer(): TransformStream<StreamEvent, string> {
         // Enqueue the string content directly
         controller.enqueue(chunk.data.chunk.kwargs.content as string);
       }
-      if (
-        chunk.event === "on_chain_stream" &&
-        chunk.data?.chunk?.agent?.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content
-      ) {
-        // Enqueue the string content directly
-        controller.enqueue(chunk.data.chunk.agent.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content as string);
-      }
-    //   Keep the tool end condition if you want to stream tool outputs later
-      else if (chunk.event === "on_tool_end" && chunk.data?.output) {
-         controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
-      }
-      else if (chunk.event === "on_chain_stream" && chunk.data?.output?.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content) {
-         controller.enqueue(`\nChain Output: ${chunk.data.output.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content}\n`);
-      }
+    //   if (
+    //     chunk.event === "on_chain_stream" &&
+    //     chunk.data?.chunk?.agent?.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content
+    //   ) {
+    //     // Enqueue the string content directly
+    //     controller.enqueue(chunk.data.chunk.agent.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content as string);
+    //   }
+    // //   Keep the tool end condition if you want to stream tool outputs later
+    //   else if (chunk.event === "on_tool_end" && chunk.data?.output) {
+    //      controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
+    //   }
+    //   else if (chunk.event === "on_chain_stream" && chunk.data?.output?.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content) {
+    //      controller.enqueue(`\nChain Output: ${chunk.data.output.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content}\n`);
+    //   }
     },
   });
 }
