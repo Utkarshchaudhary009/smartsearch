@@ -15,7 +15,8 @@ import { generateChatResponse } from "./utils/chatbot";
 export async function POST(request: Request) {
   try {
     // 1. Extract request data
-    const { message, chatHistory, clerkId } = await request.json();
+    const { message, clerkId } = await request.json();
+    // const { message, chatHistory, clerkId } = await request.json();
 
     // 2. Validate inputs
     if (!clerkId) {
@@ -75,7 +76,6 @@ export async function POST(request: Request) {
         console.error("Image generation failed, falling back to text response");
         responseContent = await generateChatResponse(
           message,
-          Array.isArray(chatHistory) ? chatHistory : [],
           genAI
         );
       }
@@ -84,7 +84,6 @@ export async function POST(request: Request) {
       console.log("Using text response");
       responseContent = await generateChatResponse(
         message,
-        Array.isArray(chatHistory) ? chatHistory : [],
         genAI
       );
     }
