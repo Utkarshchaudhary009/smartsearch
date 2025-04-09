@@ -29,4 +29,4 @@ export type StreamingAgentResponse = {
   toolName?: string;
   toolInput?: string;
   toolOutput?: string;
-}; 
+};
