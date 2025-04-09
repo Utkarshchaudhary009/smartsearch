@@ -46,6 +46,14 @@ export async function generateAndStoreImage(
   genAI: GoogleGenAI,
   supabase?: SupabaseClient
 ): Promise<ImageGenerationResult | null> {
+  if (clerkId === "guest_user") {
+    return {
+      imageUrl: "Not generated",
+      altText: "Not generated",
+      modelUsed: "Not generated",
+      error: "Guest user cannot generate images. Login to use the feature of image generation. Login at https://search.utkarshchaudhary.space/sign-in. giveit as a buttn with link with proper formated ui.",
+    };
+  }
   // Constants
   const imageModelName = "gemini-2.0-flash-exp-image-generation";
   const bucketName = "generated_images_bucket";
@@ -85,7 +93,7 @@ export async function generateAndStoreImage(
 
           // Create filename with user ID for organization
           const fileName = `${clerkId}/${uuidv4()}.png`;
-          
+
           // Upload to Supabase Storage
           console.log(`Uploading to Supabase: ${fileName}`);
           for (let i = 0; i < 10; i++) {

@@ -39,6 +39,14 @@ export async function editAndStoreImage(
   clerkId: string,
   genAI: GoogleGenAI
 ): Promise<ImageEditResult | null> {
+  if (clerkId === "guest_user") {
+    return {
+      imageUrl: "Not generated",
+      altText: "Not generated",
+      modelUsed: "Not generated",
+      error: "Guest user cannot edit images. Login to use the feature of image edit. Login at https://search.utkarshchaudhary.space/sign-in. giveit as a buttn with link with proper formated ui.",
+    };
+  }
   // Constants
   const imageModelName = "gemini-2.0-flash-exp-image-generation";
   const bucketName = "generated_images_bucket";
