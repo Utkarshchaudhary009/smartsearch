@@ -180,7 +180,7 @@ export const createSmartAITools = (genAI: GoogleGenAI, clerkId: string) => {
     async ({
       imageUrl,
       prompt,
-      altText,
+      altText
     }: {
       imageUrl: string;
       prompt: string;
@@ -222,7 +222,7 @@ export const createSmartAITools = (genAI: GoogleGenAI, clerkId: string) => {
 
   const tavilyTool = new TavilySearchResults({
     apiKey:
-      process.env.TAVILY_API_KEY || "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",
+      process.env.TAVILY_API_KEY,
     maxResults: 3,
   });
   return [imageGenerationTool, chatbotTool, tavilyTool, imageEditTool];
@@ -304,7 +304,7 @@ export const processUserRequest = async (
 //   // Mock data for testing
 //   const clerkId = "test_user_123";
 //   const googleApiKey =
-//     process.env.GOOGLE_AI_KEY || "AIzaSyC1fpcAoedFUplAhqCBys5xja7c62T8v1s";
+//     process.env.GOOGLE_AI_KEY ;
 
 //   // Initialize empty chat history
 //   const chatHistory: Message[] = [];

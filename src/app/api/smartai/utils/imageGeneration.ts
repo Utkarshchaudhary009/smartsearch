@@ -14,12 +14,8 @@ export interface ImageGenerationResult {
  * @returns A configured Supabase client or null if environment variables are missing
  */
 export function initSupabaseClient(): SupabaseClient | null {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    "https://spgqktricuenzbwtddfu.supabase.co";
-  const supabaseServiceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwZ3FrdHJpY3Vlbnpid3RkZGZ1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MzY1NTYzMSwiZXhwIjoyMDU5MjMxNjMxfQ.VcAdktHFyQsDuDKLd3-mGWHX3O5uiexZt2VuRt0pmUg";
+  const supabaseUrl =process.env.NEXT_PUBLIC_SUPABASE_URL ;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error(
