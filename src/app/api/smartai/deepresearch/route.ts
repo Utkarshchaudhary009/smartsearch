@@ -1,42 +1,19 @@
 import { createSmartAIAgent } from "@/app/api/smartai/utils/Agent";
 import { NextRequest, NextResponse } from "next/server";
 import { Message as VercelChatMessage } from "ai";
-import type { StreamEvent } from "@langchain/core/tracers/log_stream";
+// import type { StreamEvent } from "@langchain/core/tracers/log_stream"; // No longer needed for .stream()
+import type { AIMessageChunk } from "@langchain/core/messages"; // Import for type checking
 
 export const runtime = "edge";
 
-// Updated parser to handle StreamEvent objects directly
-function createEventStreamTransformer(): TransformStream<StreamEvent, string> {
+// Renamed and updated transformer for .stream() output
+function createStreamOutputTransformer(): TransformStream<AIMessageChunk, string> {
   return new TransformStream({
-    transform(chunk: StreamEvent, controller) {
-      // Keep logging for debugging if needed
-      // console.log("--- STREAM EVENT ---");
-      // console.log(`Event: ${chunk.event}`);
-      // console.log("Data:", JSON.stringify(chunk.data, null, 2));
-      // console.log("--------------------");
-
-      // Check for LLM stream events and extract content from the correct path
-      if (
-        chunk.event === "on_llm_stream" &&
-        chunk.data?.chunk?.kwargs?.content
-      ) {
-        // Enqueue the string content directly
-        controller.enqueue(chunk.data.chunk.kwargs.content as string);
+    transform(chunk: AIMessageChunk, controller) {
+      // .stream() typically yields AIMessageChunk objects with a .content property
+      if (typeof chunk.content === "string") {
+        controller.enqueue(chunk.content);
       }
-    //   if (
-    //     chunk.event === "on_chain_stream" &&
-    //     chunk.data?.chunk?.agent?.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content
-    //   ) {
-    //     // Enqueue the string content directly
-    //     controller.enqueue(chunk.data.chunk.agent.messages[chunk.data?.chunk?.agent?.messages.length - 1]?.kwargs?.content as string);
-    //   }
-    // //   Keep the tool end condition if you want to stream tool outputs later
-    //   else if (chunk.event === "on_tool_end" && chunk.data?.output) {
-    //      controller.enqueue(`\nTool Output: ${chunk.data.output}\n`);
-    //   }
-    //   else if (chunk.event === "on_chain_stream" && chunk.data?.output?.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content) {
-    //      controller.enqueue(`\nChain Output: ${chunk.data.output.messages[chunk.data?.output?.messages.length - 1]?.kwargs?.content}\n`);
-    //   }
     },
   });
 }
@@ -55,18 +32,18 @@ export async function POST(req: NextRequest) {
 
     const agent = createSmartAIAgent(googleApiKey, clerkId || "guest");
 
-    const stream = await agent.streamEvents(
+    // Use agent.stream() without the invalid 'version' config
+    const stream = await agent.stream(
       {
         messages: messages.map((msg: VercelChatMessage) => ({
           role: msg.role,
           content: msg.content,
         })),
-      },
-      { version: "v1" }
+      }
     );
 
-    // Pipe through the updated transformer
-    const customStream = stream.pipeThrough(createEventStreamTransformer());
+    // Pipe through the transformer specific to .stream() output
+    const customStream = stream.pipeThrough(createStreamOutputTransformer());
 
     // Encode the string stream back to Uint8Array for the Response body
     const encoder = new TextEncoder();
