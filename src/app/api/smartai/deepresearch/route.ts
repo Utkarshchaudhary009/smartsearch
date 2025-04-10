@@ -7,7 +7,11 @@ import type { AIMessageChunk } from "@langchain/core/messages"; // Import for ty
 export const runtime = "edge";
 
 // Renamed and updated transformer for .stream() output
-function createStreamOutputTransformer(): TransformStream<AIMessageChunk, string> {
+function createStreamOutputTransformer(): TransformStream<
+  AIMessageChunk,
+  string
+> {
+    console.log("chunk", chunk);
   return new TransformStream({
     transform(chunk: AIMessageChunk, controller) {
       // .stream() typically yields AIMessageChunk objects with a .content property
@@ -33,14 +37,12 @@ export async function POST(req: NextRequest) {
     const agent = createSmartAIAgent(googleApiKey, clerkId || "guest");
 
     // Use agent.stream() without the invalid 'version' config
-    const stream = await agent.stream(
-      {
-        messages: messages.map((msg: VercelChatMessage) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-      }
-    );
+    const stream = await agent.stream({
+      messages: messages.map((msg: VercelChatMessage) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+    },{streamMode: "values"});
 
     // Pipe through the transformer specific to .stream() output
     const customStream = stream.pipeThrough(createStreamOutputTransformer());
