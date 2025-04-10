@@ -12,6 +12,7 @@ export function formatChatMessages(chatHistory: ChatMessage[]): Message[] {
       role: "user",
       content: chat.query,
       timestamp: "",
+      status: "sent",
     });
 
     // Add agent response
@@ -19,6 +20,7 @@ export function formatChatMessages(chatHistory: ChatMessage[]): Message[] {
       role: "agent",
       content: chat.response,
       timestamp: "",
+      status: "sent",
     });
   }
 
